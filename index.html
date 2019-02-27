@@ -14,7 +14,7 @@
             position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;
             border: 10px solid yellow;
             border-radius: 20px;
-            background-color: #FFF;
+            background-color: #000;
         }
     </style>
 </head>
@@ -26,24 +26,53 @@
     <script>
 
         // init
+
         const renderer = document.getElementById("renderer");
         const dx = DX(renderer.getContext("webgl2"));
 
-        // viewport
+        // matrix
 
+        const cameraMatrix = mat4.create();
         const projectionMatrix = mat4.create();
+        const perspectiveMatrix = mat4.create();
+
+        // camera
+
+        mat4.translate(cameraMatrix, mat4.create(), [0, 0, -2000]);  // amount to translate
+        // mat4.rotate(cameraMatrix, cameraMatrix, 0.5, [0, 1, 0]);
+
+        const da = 0.10;
+
+        function rotate(axis) {
+            mat4.rotate(cameraMatrix, cameraMatrix, da, axis);
+            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);
+        }
+
+        const dd = 20;
+
+        function translate(by) {
+            mat4.translate(cameraMatrix, cameraMatrix, by);
+            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);
+        }
+
+
+        // projection
 
         window.onresize = function () {
-            renderer.setAttribute("width", renderer.clientWidth);
-            renderer.setAttribute("height", renderer.clientHeight);
+            const w = renderer.clientWidth;
+            const h = renderer.clientHeight;
 
-            dx.gl.viewport(0, 0, renderer.clientWidth, renderer.clientHeight);
+            renderer.setAttribute("width", w);
+            renderer.setAttribute("height", h);
 
-            const fieldOfView = 45 * Math.PI / 180;   // in radians
-            const aspect = renderer.clientWidth / renderer.clientHeight;
-            const zNear = 0.1;
-            const zFar = 100.0;
-            mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+            dx.gl.viewport(0, 0, w, h);
+
+            const fieldOfView = 20 * Math.PI / 180;   // in radians
+            const aspect = w / h;
+            const zNear = 1;
+            const zFar = 2000000;
+            mat4.perspective(perspectiveMatrix, fieldOfView, aspect, zNear, zFar);
+            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);  // amount to translate
         }
 
         window.onresize();
@@ -53,7 +82,7 @@
         const cl0 = ["y","r","g"];
         const cl1 = ["y","g","b"];
 
-        var s = 1.0;
+        var s = 25;
 
         var shape0 = dx.GradedShape(
             [
@@ -67,7 +96,7 @@
                 "b": [0.0,  0.0,  1.0,  1.0],    // blue
             },
             [
-                //[0, 1, 2, "g"], [0, 2, 3, "g"],    // front
+                [0, 1, 2, ...cl0], [0, 2, 3, ...cl1],    // front
                 [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
                 [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
                 [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
@@ -76,12 +105,14 @@
             ]
         );
 
-        var s = 1.5;
+        var s = 50;
 
         var shape1 = dx.GradedShape(
             [
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
+                /*[-s, -s,  2*s], [ s, -s,  2*s], [ s,  s,  2*s], [-s,  s,  2*s],
+                [-s, -s, -2*s], [ s, -s, -2*s], [ s,  s, -2*s], [-s,  s, -2*s],*/
             ],
             {
                 "y": [1.0,  1.0,  0.0,  1.0],    // yellow
@@ -90,7 +121,7 @@
                 "b": [0.0,  0.0,  1.0,  1.0],    // blue
             },
             [
-                //[0, 1, 2, "g"], [0, 2, 3, "g"],    // front
+                [0, 1, 2, ...cl0], [0, 2, 3, ...cl1],    // front
                 [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
                 [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
                 [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
@@ -109,28 +140,62 @@
         var then = 0;
         var cubeRotation = 0.0;
 
-        function render(now) {
+        function render(now, single) {
             now *= 0.001;  // convert to seconds
             const deltaTime = now - then;
             then = now;
 
-            mat4.translate(modelViewMatrix, mat4.create(), [-0.0, 0.0, -10.0]);  // amount to translate
-
             cubeRotation += deltaTime;
-            mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, 1]);
-            mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, 1, 0]);
 
-            /*mat4.invert(normalMatrix, modelViewMatrix);
-            mat4.transpose(normalMatrix, normalMatrix);*/
+
+            mat4.translate(modelViewMatrix, mat4.create(), [0,0,-200]);  // amount to translate
+
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, -1]);
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, 1, 0]);
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.2 * cubeRotation, [-1, 0, 0]);
 
             dx.clear();
+
             dx.draw(shape0, modelViewMatrix, projectionMatrix);
+
+            mat4.translate(modelViewMatrix, mat4.create(), [0,0,0]);  // amount to translate
+
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, -1]);
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, -1, 0]);
+            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.2 * cubeRotation, [1,  0, 0]);
+
             dx.draw(shape1, modelViewMatrix, projectionMatrix);
 
-            requestAnimationFrame(render);
+            if (!single) requestAnimationFrame(render);
         }
 
-        requestAnimationFrame(render);
+        // requestAnimationFrame(render);
+        render(performance.now(), true);
+
+        // keyboard mappings
+        window.addEventListener("keydown", function (event) {
+            switch(event.which) {
+                case 87: translate([  0,  dd,   0]); break; // w
+                case 65: translate([-dd,   0,   0]); break; // a
+                case 83: translate([  0, -dd,   0]); break; // s
+                case 68: translate([ dd,   0,   0]); break; // d
+                case 81: translate([  0,   0, -dd]); break; // q
+                case 69: translate([  0,   0,  dd]); break; // e
+
+                case 73: rotate([-1,0,0]); break; // i
+                case 74: rotate([0,-1,0]); break; // j
+                case 75: rotate([1,0,0]); break; // k
+                case 76: rotate([0,1,0]); break; // l
+                case 85: rotate([0,0,1]); break; // u
+                case 79: rotate([0,0,-1]); break; // o
+
+                case 13: // Enter
+                case 32: // Space
+                case 80: // p
+            }
+
+            render(performance.now(), true);
+        });
 
 
     </script>

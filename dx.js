@@ -3,53 +3,53 @@
 function DX(gl) {
 // begin
 
-gl.clearColor(0.0, 0.0, 0.0, 1.0);
-gl.clear(gl.COLOR_BUFFER_BIT);
-
+gl.clearColor(0.0, 0.0, 0.0, 0.0); // transparent
+gl.enable(gl.DEPTH_TEST);
+gl.depthFunc(gl.LEQUAL);
 
 // shader
-
 var gradedShader;
 
 {
-    const program = initShaderProgram(
-        `
-            attribute vec4 aVertexPosition;
-            attribute vec4 aVertexColor;
+    const gradedVShader = vShader(`
+        attribute vec4 aVertexPosition;
+        attribute vec4 aVertexColor;
 
-            uniform mat4 uModelViewMatrix;
-            uniform mat4 uProjectionMatrix;
-            uniform mat4 uNormalMatrix;
+        uniform mat4 uModelViewMatrix;
+        uniform mat4 uProjectionMatrix;
+        uniform mat4 uNormalMatrix;
 
-            varying lowp vec4 vColor;
+        varying lowp vec4 vColor;
 
-            void main(void) {
-                gl_Position  = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-                vColor = aVertexColor;
-            }
-
-        `,
-        `
-            varying lowp vec4 vColor;
-
-            void main(void) {
-                gl_FragColor = vColor;
-            }
-        `
-    );
-
-    gradedShader = {
-        program,
-        attributes: {
-            vertexPosition: gl.getAttribLocation(program, 'aVertexPosition'),
-            vertexColor: gl.getAttribLocation(program, 'aVertexColor')
-        },
-        uniforms: {
-            projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
-            modelViewMatrix: gl.getUniformLocation(program, 'uModelViewMatrix'),
-            //normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix')
+        void main(void) {
+            gl_Position  = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+            vColor = aVertexColor;
         }
-    };
+
+    `);
+
+    const gradedFShader = fShader(`
+        varying lowp vec4 vColor;
+
+        void main(void) {
+            gl_FragColor = vColor;
+        }
+    `);
+
+    const program = initShaderProgram(gradedVShader, gradedFShader);
+
+    const attributes = {
+        vertexPosition: gl.getAttribLocation(program, 'aVertexPosition'),
+        vertexColor: gl.getAttribLocation(program, 'aVertexColor')
+    }
+
+    const uniforms = {
+        projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
+        modelViewMatrix: gl.getUniformLocation(program, 'uModelViewMatrix'),
+        //normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix')
+    }
+
+    gradedShader = {program, attributes, uniforms};
 }
 
 
@@ -57,6 +57,7 @@ var gradedShader;
 
 function GradedShape(vertixS, colorS, triangleS) {
 
+    const size = triangleS.length * 3;
     let vertices = [], colors = [];
 
     for (let triangle of triangleS) {
@@ -79,21 +80,15 @@ function GradedShape(vertixS, colorS, triangleS) {
         }
     }
 
-    return {
-        size: triangleS.length * 3,
-        vertices: initBuffer(vertices),
-        colors: initBuffer(colors)
-    }
-}
+    vertices = initBuffer(vertices);
+    colors = initBuffer(colors);
 
+    return {size, vertices, colors};
+}
 
 // drawing
 
 function clear() {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-    gl.clearDepth(1.0);                 // Clear everything
-    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear the canvas
 }
 
@@ -107,7 +102,6 @@ function draw(shape, modelViewMatrix, projectionMatrix) {
     gl.uniformMatrix4fv(uniforms.projectionMatrix, false, projectionMatrix);
     gl.uniformMatrix4fv(uniforms.modelViewMatrix, false, modelViewMatrix);
 
-
     initAttrPointer(vertices, attributes.vertexPosition, 3);
     initAttrPointer(colors, attributes.vertexColor, 4);
 
@@ -119,21 +113,16 @@ function draw(shape, modelViewMatrix, projectionMatrix) {
 
 // helpers
 
-//
-// Initialize a shader program, so WebGL knows how to draw our data
-//
-function initShaderProgram(vsSource, fsSource) {
-    const vertexShader = loadShader(gl.VERTEX_SHADER, vsSource);
-    const fragmentShader = loadShader(gl.FRAGMENT_SHADER, fsSource);
 
-    // Create the shader program
+// Initialize a shader program, so WebGL knows how to draw our data
+function initShaderProgram(vertexShader, fragmentShader) {
+    if (typeof vertexShader === "string") vertexShader = vShader(vertexShader);
+    if (typeof fragmentShader === "string") fragmentShader = fShader(fragmentShader);
 
     const shaderProgram = gl.createProgram();
     gl.attachShader(shaderProgram, vertexShader);
     gl.attachShader(shaderProgram, fragmentShader);
     gl.linkProgram(shaderProgram);
-
-    // If creating the shader program failed, alert
 
     if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
         alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
@@ -143,22 +132,22 @@ function initShaderProgram(vsSource, fsSource) {
     return shaderProgram;
 }
 
-//
+
 // creates a shader of the given type, uploads the source and
-// compiles it.
+// compiles it
+function vShader(source) {
+    return loadShader(gl.VERTEX_SHADER, source);
+}
+
+function fShader(source) {
+    return loadShader(gl.FRAGMENT_SHADER, source);
+}
+
 //
 function loadShader(type, source) {
     const shader = gl.createShader(type);
-
-    // Send the source to the shader object
-
     gl.shaderSource(shader, source);
-
-    // Compile the shader program
-
     gl.compileShader(shader);
-
-    // See if it compiled successfully
 
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
@@ -188,7 +177,6 @@ function initAttrPointer(buffer, attributeLocation, size, type=null, normalize=n
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.vertexAttribPointer(attributeLocation, size, type, normalize, stride, offset);
     gl.enableVertexAttribArray(attributeLocation);
-
 }
 
 
