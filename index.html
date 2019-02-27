@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WGL</title>
+    <meta charset="utf-8">
+
+    <style>
+        * { padding: 0; margin: 0; box-sizing: border-box; }
+
+        body { background-color: #000; }
+
+        #renderer {
+            width: 100%; height: 100%;
+            position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;
+            border: 10px solid yellow;
+            border-radius: 20px;
+            background-color: #FFF;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderer"></canvas>
+
+    <script src="gl-matrix.js"></script>
+    <script src="gl.js"></script>
+    <script src="api.js"></script>
+    <script>
+        const renderer = document.getElementById("renderer");
+
+        renderer.onresize = function () {
+            renderer.setAttribute("width", renderer.clientWidth);
+            renderer.setAttribute("height", renderer.clientHeight);
+        }
+
+        renderer.onresize();
+
+
+        const gl = renderer.getContext("webgl");
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        const vsSource = `
+            attribute vec4 aVertexPosition;
+            attribute vec4 aVertexColor;
+
+            uniform mat4 uModelViewMatrix;
+            uniform mat4 uProjectionMatrix;
+            uniform mat4 uNormalMatrix;
+
+            varying lowp vec4 vColor;
+
+            void main(void) {
+                gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
+                vColor = aVertexColor;
+            }
+        `;
+
+        const fsSource = `
+            varying lowp vec4 vColor;
+
+            void main(void) {
+                gl_FragColor = vColor;
+            }
+        `;
+
+        const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
+
+
+        const programInfo = {
+            program: shaderProgram,
+            attribLocations: {
+                vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+                vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor')
+            },
+            uniformLocations: {
+                projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+                modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+                normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix')
+            }
+        };
+
+
+        const buffers = initBuffers(gl);
+
+
+        var then = 0;
+        var cubeRotation = 0.0;
+
+        // Draw the scene repeatedly
+        function render(now) {
+            now *= 0.001;  // convert to seconds
+            const deltaTime = now - then;
+            then = now;
+
+            drawScene(gl, programInfo, buffers, deltaTime);
+
+            requestAnimationFrame(render);
+        }
+        requestAnimationFrame(render);
+
+
+    </script>
+</body>
+</html>
