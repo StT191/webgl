@@ -17,16 +17,31 @@ var gradedShader;
     const gradedVShader = vShader(`
         attribute vec4 aVertexPosition;
         attribute vec2 aTextureCoord;
+        attribute vec4 aNormal;
 
         uniform sampler2D uTexture;
 
         uniform mat4 uProjectionMatrix;
+        uniform mat4 uNormalMatrix;
 
         varying lowp vec4 vColor;
 
         void main(void) {
             gl_Position  = uProjectionMatrix * aVertexPosition;
+
             vColor = texture2D(uTexture, aTextureCoord);
+
+            vec4 normal = uNormalMatrix * aNormal;
+            float f = normal[2];
+
+            if (f < 0.0) f = 0.0;
+
+            f = 0.9 * f + 0.1;
+
+
+            vColor[0] *= f;
+            vColor[1] *= f;
+            vColor[2] *= f;
         }
 
     `);
@@ -43,28 +58,36 @@ var gradedShader;
 
     const attributes = {
         vertexPosition: gl.getAttribLocation(program, 'aVertexPosition'),
-        vertexTexCoord: gl.getAttribLocation(program, 'aTextureCoord')
+        vertexTexCoord: gl.getAttribLocation(program, 'aTextureCoord'),
+        normal: gl.getAttribLocation(program, 'aNormal')
     }
 
     const uniforms = {
         projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
         texture: gl.getUniformLocation(program, 'uTexture'),
-        //normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix')
+        normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix')
     }
 
     gradedShader = {program, attributes, uniforms};
 }
 
 
+const tmpVec0 = vec3.create();
+const tmpVec1 = vec3.create();
 
 // shapes
 
 function GradedShape(vertixS, texture, triangleS) {
 
     const size = triangleS.length * 3;
-    let vertices = [], vertexTexCoords = [];
+    let vertices = [], vertexTexCoords = [], normals = [];
 
     for (let [corners, texCoords] of triangleS) {
+        vec3.subtract(tmpVec0, vertixS[corners[1]], vertixS[corners[0]]);
+        vec3.subtract(tmpVec1, vertixS[corners[2]], vertixS[corners[0]]);
+
+        const normal = vec3.normalize(tmpVec0, vec3.cross(tmpVec0, tmpVec0, tmpVec1));
+
         for (let i=0; i<3; i++) {
 
             const vertix = vertixS[corners[i]];
@@ -73,15 +96,18 @@ function GradedShape(vertixS, texture, triangleS) {
             vertices.push(...vertix);
 
             vertexTexCoords.push(...texCoords[i]);
+
+            normals.push(...normal);
         }
     }
 
     vertices = initBuffer(vertices);
     vertexTexCoords = initBuffer(vertexTexCoords);
+    normals = initBuffer(normals);
 
     if (texture.constructor === Array) texture = createTexture(...texture);
 
-    return {size, vertices, texture, vertexTexCoords};
+    return {size, vertices, texture, vertexTexCoords, normals};
 }
 
 
@@ -96,9 +122,15 @@ function clear() {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); // Clear the canvas
 }
 
-function draw(shape, projectionMatrix) {
+const pjMat = mat4.create();
+const nmMat = mat4.create();
+
+function draw(shape, projectionMatrix, objectMatrix) {
+    mat4.multiply(pjMat, projectionMatrix, objectMatrix);
+    mat4.getRotationMatrix(nmMat, objectMatrix);
+
     const {program, attributes, uniforms} = gradedShader;
-    const {size, vertices, texture, vertexTexCoords} = shape;
+    const {size, vertices, texture, vertexTexCoords, normals} = shape;
 
     if (lastProgram !== program) {
         gl.useProgram(program);
@@ -108,11 +140,13 @@ function draw(shape, projectionMatrix) {
     if (lastShape !== shape) {
         setAttrPointer(vertices, attributes.vertexPosition, 3);
         setAttrPointer(vertexTexCoords, attributes.vertexTexCoord, 2);
+        setAttrPointer(normals, attributes.normal, 3);
         setTexture(texture, uniforms.texture, 0);
         lastShape = shape;
     }
 
-    gl.uniformMatrix4fv(uniforms.projectionMatrix, false, projectionMatrix);
+    gl.uniformMatrix4fv(uniforms.projectionMatrix, false, pjMat);
+    gl.uniformMatrix4fv(uniforms.normalMatrix, false, nmMat);
 
     gl.drawArrays(gl.TRIANGLES, 0, size);
 }
