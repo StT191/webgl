@@ -24,37 +24,60 @@
     <script src="gl-matrix.js"></script>
     <script src="dx.js"></script>
     <script>
-
+        const rad = Math.PI / 180;
         // init
 
         const renderer = document.getElementById("renderer");
         const dx = DX(renderer.getContext("webgl2"));
 
-        // matrix
+        // matrix projection
 
-        const cameraMatrix = mat4.create();
-        const projectionMatrix = mat4.create();
-        const perspectiveMatrix = mat4.create();
+        const worldMat = mat4.create();
+        const cameraMat = mat4.fromTranslation(mat4.create(), [0, 0, -2000]);
+        const perspectiveMat = mat4.create();
+        const projMat = mat4.create();
+
+        const tmpVec = vec3.create();
+        const tmpQuat = quat.create();
+        const tmpMat = mat4.create();
+
+
+        function project() {
+            return mat4.multiply(projMat, perspectiveMat, mat4.multiply(tmpMat, cameraMat, worldMat));
+        }
 
         // camera
 
-        mat4.translate(cameraMatrix, mat4.create(), [0, 0, -2000]);  // amount to translate
-        // mat4.rotate(cameraMatrix, cameraMatrix, 0.5, [0, 1, 0]);
+        const dd = 50;
 
-        const da = 0.10;
-
-        function rotate(axis) {
-            mat4.rotate(cameraMatrix, cameraMatrix, da, axis);
-            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);
+        function translateWorld(by) {
+            return mat4.multiply(worldMat, mat4.fromTranslation(tmpMat, by), worldMat);
         }
 
-        const dd = 20;
 
-        function translate(by) {
-            mat4.translate(cameraMatrix, cameraMatrix, by);
-            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);
+        const da = 3*rad;
+
+        function revolveWorld(by) {
+            return mat4.multiply(worldMat, mat4.fromYRotation(tmpMat, by*da), worldMat);
         }
 
+        function panWorld(by) {
+            return mat4.rotateX(cameraMat, cameraMat, by*da);
+        }
+
+        function zoomWorld(by) {
+            return mat4.multiply(cameraMat, mat4.fromTranslation(tmpMat, [0, 0, by]), cameraMat);
+        }
+
+        /*function rotateCam(axis) {
+            translateWorld(vec3.negate(tmpVec, mat4.getTranslation(tmpVec, viewMat)));
+            mat4.multiply(viewMat, mat4.fromRotation(tmpMat, da, axis), viewMat);
+            translateWorld(vec3.negate(tmpVec, tmpVec));
+            return viewMat;
+        }*/
+
+        zoomWorld(-20*dd);
+        panWorld(8);
 
         // projection
 
@@ -67,134 +90,157 @@
 
             dx.gl.viewport(0, 0, w, h);
 
-            const fieldOfView = 20 * Math.PI / 180;   // in radians
+            const fieldOfView = 20 * rad;   // in radians
             const aspect = w / h;
             const zNear = 1;
             const zFar = 2000000;
-            mat4.perspective(perspectiveMatrix, fieldOfView, aspect, zNear, zFar);
-            mat4.multiply(projectionMatrix, perspectiveMatrix, cameraMatrix);  // amount to translate
+            mat4.perspective(perspectiveMat, fieldOfView, aspect, zNear, zFar);
+
+            project();
+            render(performance.now(), true);
         }
 
-        window.onresize();
 
         // shape
 
-        const cl0 = ["y","r","g"];
-        const cl1 = ["y","g","b"];
+        var s = 100;
+        var s0 = 0.25, s1 = 0.5, s2 = 1.0, s3 = 1.5;
 
-        var s = 25;
+
+        const cl0 = [[0,0],[1,0],[0,1]]; // y, r, g
+        const cl1 = [[0,0],[0,1],[1,1]]; // y, g, b
 
         var shape0 = dx.GradedShape(
             [
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
             ],
-            {
-                "y": [1.0,  1.0,  0.0,  1.0],    // yellow
-                "r": [1.0,  0.0,  0.0,  1.0],    // red
-                "g": [0.0,  1.0,  0.0,  1.0],    // green
-                "b": [0.0,  0.0,  1.0,  1.0],    // blue
-            },
             [
-                [0, 1, 2, ...cl0], [0, 2, 3, ...cl1],    // front
-                [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
-                [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
-                [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
-                [0, 4, 7, ...cl0], [0, 7, 3, ...cl1],    // left
-                [1, 2, 6, ...cl0], [1, 6, 5, ...cl1],    // right
-            ]
-        );
-
-        var s = 50;
-
-        var shape1 = dx.GradedShape(
-            [
-                [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
-                [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
-                /*[-s, -s,  2*s], [ s, -s,  2*s], [ s,  s,  2*s], [-s,  s,  2*s],
-                [-s, -s, -2*s], [ s, -s, -2*s], [ s,  s, -2*s], [-s,  s, -2*s],*/
+                [
+                    [255,  255,    0,  255], [255,    0,    0,  255],   // yellow, red
+                    [  0,  255,    0,  255], [  0,    0,  255,  255]    // green, blue
+                ],
+                2, 2
             ],
-            {
-                "y": [1.0,  1.0,  0.0,  1.0],    // yellow
-                "r": [1.0,  0.0,  0.0,  1.0],    // red
-                "g": [0.0,  1.0,  0.0,  1.0],    // green
-                "b": [0.0,  0.0,  1.0,  1.0],    // blue
-            },
             [
-                [0, 1, 2, ...cl0], [0, 2, 3, ...cl1],    // front
-                [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
-                [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
-                [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
-                [0, 4, 7, ...cl0], [0, 7, 3, ...cl1],    // left
-                [1, 2, 6, ...cl0], [1, 6, 5, ...cl1],    // right
+                [[0, 1, 2], cl0], [[0, 2, 3], cl1],    // front
+                [[4, 5, 6], cl0], [[4, 6, 7], cl1],    // back
+                [[0, 1, 5], cl0], [[0, 5, 4], cl1],    // bottom
+                [[3, 2, 6], cl0], [[3, 6, 7], cl1],    // top
+                [[0, 4, 7], cl0], [[0, 7, 3], cl1],    // left
+                [[1, 2, 6], cl0], [[1, 6, 5], cl1],    // right
             ]
         );
 
-
-        var modelViewMatrix = mat4.create();
-        var normalMatrix = mat4.create();
-
+        var objMat = mat4.create();
 
         // drawing
+        var p = true;
 
         var then = 0;
         var cubeRotation = 0.0;
 
-        function render(now, single) {
-            now *= 0.001;  // convert to seconds
+        function render(now) {
+            if (!now) then = now = performance.now() * 0.001;
+            else now *= 0.001;  // convert to seconds
+
             const deltaTime = now - then;
             then = now;
 
             cubeRotation += deltaTime;
 
 
-            mat4.translate(modelViewMatrix, mat4.create(), [0,0,-200]);  // amount to translate
-
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, -1]);
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, 1, 0]);
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.2 * cubeRotation, [-1, 0, 0]);
-
             dx.clear();
 
-            dx.draw(shape0, modelViewMatrix, projectionMatrix);
 
-            mat4.translate(modelViewMatrix, mat4.create(), [0,0,0]);  // amount to translate
+            mat4.fromTranslation(objMat, [0,0,750]);  // amount to translate
+            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
+            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
+            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
+            mat4.scale(objMat, objMat, [s0,s0,s0]);
+            dx.draw(shape0, mat4.multiply(tmpMat, projMat, objMat));
 
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, -1]);
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, -1, 0]);
-            // mat4.rotate(modelViewMatrix, modelViewMatrix, 0.2 * cubeRotation, [1,  0, 0]);
+            mat4.fromTranslation(objMat, [0,0,250]);  // amount to translate
+            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
+            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
+            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
+            mat4.scale(objMat, objMat, [s1,s1,s1]);
+            dx.draw(shape0, mat4.multiply(tmpMat, projMat, objMat));
 
-            dx.draw(shape1, modelViewMatrix, projectionMatrix);
+            mat4.fromTranslation(objMat, [0,0,-250]);  // amount to translate
+            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
+            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
+            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
+            // mat4.scale(objMat, objMat, [s2,s2,s2]);
+            dx.draw(shape0, mat4.multiply(tmpMat, projMat, objMat));
 
-            if (!single) requestAnimationFrame(render);
+            mat4.fromTranslation(objMat, [0,0,-750]);  // amount to translate
+            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
+            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
+            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
+            mat4.scale(objMat, objMat, [s3,s3,s3]);
+            dx.draw(shape0, mat4.multiply(tmpMat, projMat, objMat));
+
+            if (p) requestAnimationFrame(render);
         }
 
-        // requestAnimationFrame(render);
-        render(performance.now(), true);
+        window.onresize();
+        requestAnimationFrame(render);
+
 
         // keyboard mappings
+
         window.addEventListener("keydown", function (event) {
             switch(event.which) {
-                case 87: translate([  0,  dd,   0]); break; // w
-                case 65: translate([-dd,   0,   0]); break; // a
-                case 83: translate([  0, -dd,   0]); break; // s
-                case 68: translate([ dd,   0,   0]); break; // d
-                case 81: translate([  0,   0, -dd]); break; // q
-                case 69: translate([  0,   0,  dd]); break; // e
+                case 65: translateWorld([-dd,   0,   0]); break; // a
+                case 68: translateWorld([ dd,   0,   0]); break; // d
+                case 87: translateWorld([  0,   0, -dd]); break; // w
+                case 83: translateWorld([  0,   0,  dd]); break; // s
+                case 81: translateWorld([  0,  dd,   0]); break; // q
+                case 69: translateWorld([  0, -dd,   0]); break; // e
 
-                case 73: rotate([-1,0,0]); break; // i
-                case 74: rotate([0,-1,0]); break; // j
-                case 75: rotate([1,0,0]); break; // k
-                case 76: rotate([0,1,0]); break; // l
-                case 85: rotate([0,0,1]); break; // u
-                case 79: rotate([0,0,-1]); break; // o
+                case 74: revolveWorld(-1); break; // j
+                case 76: revolveWorld( 1); break; // l
+                case 73: panWorld(-1); break; // i
+                case 75: panWorld( 1); break; // k
+                case 85: zoomWorld(-dd); break; // u
+                case 79: zoomWorld( dd); break; // o
 
                 case 13: // Enter
                 case 32: // Space
-                case 80: // p
+                case 80: if (p) p = false; else { p = true; render(); } break; // p
+
             }
 
-            render(performance.now(), true);
+            project();
+            if (!p) render();
+        });
+
+
+        // mouse mappings
+
+        function mousePan(event) {
+            revolveWorld(event.movementX / 10);
+            panWorld(event.movementY / 10);
+
+            project();
+            if (!p) render();
+        }
+
+        function toggleMousePan(direction, event) {
+            if (event.button === 0) switch (direction) {
+                case "down": window.addEventListener("mousemove", mousePan); break;
+                case "up": window.removeEventListener("mousemove", mousePan); break;
+            }
+        }
+
+        window.addEventListener("mousedown", toggleMousePan.bind(null, "down"));
+        window.addEventListener("mouseup", toggleMousePan.bind(null, "up"));
+
+        window.addEventListener("wheel", function (event) {
+            zoomWorld(-event.deltaY * 50);
+            project();
+            if (!p) render();
         });
 
 
