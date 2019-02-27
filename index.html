@@ -22,81 +22,93 @@
     <canvas id="renderer"></canvas>
 
     <script src="gl-matrix.js"></script>
-    <script src="gl.js"></script>
-    <script src="api.js"></script>
+    <script src="dx.js"></script>
     <script>
-        const renderer = document.getElementById("renderer");
 
-        renderer.onresize = function () {
+        // init
+        const renderer = document.getElementById("renderer");
+        const dx = DX(renderer.getContext("webgl2"));
+
+        // viewport
+
+        const projectionMatrix = mat4.create();
+
+        window.onresize = function () {
             renderer.setAttribute("width", renderer.clientWidth);
             renderer.setAttribute("height", renderer.clientHeight);
+
+            dx.gl.viewport(0, 0, renderer.clientWidth, renderer.clientHeight);
+
+            const fieldOfView = 45 * Math.PI / 180;   // in radians
+            const aspect = renderer.clientWidth / renderer.clientHeight;
+            const zNear = 0.1;
+            const zFar = 100.0;
+            mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
         }
 
-        renderer.onresize();
+        window.onresize();
 
+        // shape
 
-        const gl = renderer.getContext("webgl");
+        const cl0 = ["y","r","g"];
+        const cl1 = ["y","g","b"];
 
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        var s = 1.0;
 
-        const vsSource = `
-            attribute vec4 aVertexPosition;
-            attribute vec4 aVertexColor;
-
-            uniform mat4 uModelViewMatrix;
-            uniform mat4 uProjectionMatrix;
-            uniform mat4 uNormalMatrix;
-
-            varying lowp vec4 vPosition;
-
-            void main(void) {
-                vPosition = uModelViewMatrix * aVertexPosition;
-                gl_Position  = uProjectionMatrix * vPosition;
-            }
-        `;
-
-        const fsSource = `
-            varying lowp vec4 vPosition;
-
-            void main(void) {
-                gl_FragColor = vPosition * 0.5 + 0.5;
-            }
-        `;
-
-        const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
-
-
-        const programInfo = {
-            program: shaderProgram,
-            attribLocations: {
-                vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-                vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor')
+        var shape0 = dx.GradedShape(
+            [
+                [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
+                [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
+            ],
+            {
+                "y": [1.0,  1.0,  0.0,  1.0],    // yellow
+                "r": [1.0,  0.0,  0.0,  1.0],    // red
+                "g": [0.0,  1.0,  0.0,  1.0],    // green
+                "b": [0.0,  0.0,  1.0,  1.0],    // blue
             },
-            uniformLocations: {
-                projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-                modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-                normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix')
-            }
-        };
+            [
+                //[0, 1, 2, "g"], [0, 2, 3, "g"],    // front
+                [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
+                [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
+                [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
+                [0, 4, 7, ...cl0], [0, 7, 3, ...cl1],    // left
+                [1, 2, 6, ...cl0], [1, 6, 5, ...cl1],    // right
+            ]
+        );
 
+        var s = 1.5;
 
-        const buffers = initBuffers(gl);
+        var shape1 = dx.GradedShape(
+            [
+                [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
+                [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
+            ],
+            {
+                "y": [1.0,  1.0,  0.0,  1.0],    // yellow
+                "r": [1.0,  0.0,  0.0,  1.0],    // red
+                "g": [0.0,  1.0,  0.0,  1.0],    // green
+                "b": [0.0,  0.0,  1.0,  1.0],    // blue
+            },
+            [
+                //[0, 1, 2, "g"], [0, 2, 3, "g"],    // front
+                [4, 5, 6, ...cl0], [4, 6, 7, ...cl1],    // back
+                [0, 1, 5, ...cl0], [0, 5, 4, ...cl1],    // bottom
+                [3, 2, 6, ...cl0], [3, 6, 7, ...cl1],    // top
+                [0, 4, 7, ...cl0], [0, 7, 3, ...cl1],    // left
+                [1, 2, 6, ...cl0], [1, 6, 5, ...cl1],    // right
+            ]
+        );
 
-        const fieldOfView = 45 * Math.PI / 180;   // in radians
-        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-        const zNear = 0.1;
-        const zFar = 100.0;
-        const projectionMatrix = mat4.create();
-        mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
         var modelViewMatrix = mat4.create();
         var normalMatrix = mat4.create();
 
+
+        // drawing
+
         var then = 0;
         var cubeRotation = 0.0;
 
-        // Draw the scene repeatedly
         function render(now) {
             now *= 0.001;  // convert to seconds
             const deltaTime = now - then;
@@ -108,13 +120,16 @@
             mat4.rotate(modelViewMatrix, modelViewMatrix, cubeRotation, [0, 0, 1]);
             mat4.rotate(modelViewMatrix, modelViewMatrix, 0.7 * cubeRotation, [0, 1, 0]);
 
-            mat4.invert(normalMatrix, modelViewMatrix);
-            mat4.transpose(normalMatrix, normalMatrix);
+            /*mat4.invert(normalMatrix, modelViewMatrix);
+            mat4.transpose(normalMatrix, normalMatrix);*/
 
-            drawScene(gl, programInfo, buffers, deltaTime);
+            dx.clear();
+            dx.draw(shape0, modelViewMatrix, projectionMatrix);
+            dx.draw(shape1, modelViewMatrix, projectionMatrix);
 
             requestAnimationFrame(render);
         }
+
         requestAnimationFrame(render);
 
 
