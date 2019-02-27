@@ -23,23 +23,18 @@
 
     <script src="gl-matrix.js"></script>
     <script src="dx.js"></script>
+    <script src="gradedObject.js"></script>
     <script>
         const rad = Math.PI / 180;
-
-        {
-            const tVec = vec3.create();
-            mat4.getRotationMatrix = function(out, mat) {
-                mat4.scale(out, mat, vec3.inverse(tVec, mat4.getScaling(tVec, mat)));
-                out[12] = out[13] = out[14] = 0;
-                return out;
-            }
-        }
 
 
         // init
 
         const renderer = document.getElementById("renderer");
         const dx = DX(renderer.getContext("webgl2"));
+
+        GradedShape.init(dx);
+        gradedProgram.init(dx);
 
         // matrix projection
 
@@ -124,7 +119,7 @@
         const c1 = [y, g, b];
         const c1r = [y, b, g];
 
-        var shape0 = dx.GradedShape(
+        var shape0 = GradedShape(
             [
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
@@ -161,6 +156,20 @@
         var then = 0;
         var cubeRotation = 0.0;
 
+
+
+        const pjMat = mat4.create();
+        const nmMat = mat4.create();
+
+        function draw () {
+            mat4.multiply(pjMat, projMat, objMat);
+            mat4.getRotationMatrix(nmMat, objMat);
+
+            dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, normalMatrix: nmMat});
+        }
+
+
+
         function render(now) {
             if (!now) then = now = performance.now() * 0.001;
             else now *= 0.001;  // convert to seconds
@@ -179,28 +188,28 @@
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
             mat4.scale(objMat, objMat, [s0,s0,s0]);
-            dx.draw(shape0, projMat, objMat, 0.08);
+            draw();
 
             mat4.fromTranslation(objMat, [0,0,250]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
             mat4.scale(objMat, objMat, [s1,s1,s1]);
-            dx.draw(shape0, projMat, objMat, 0.08);
+            draw();
 
             mat4.fromTranslation(objMat, [0,0,-250]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
             // mat4.scale(objMat, objMat, [s2,s2,s2]);
-            dx.draw(shape0, projMat, objMat, 0.08);
+            draw();
 
             mat4.fromTranslation(objMat, [0,0,-750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
             mat4.scale(objMat, objMat, [s3,s3,s3]);
-            dx.draw(shape0, projMat, objMat, 0.08);
+            draw();
 
             if (p) requestAnimationFrame(render);
         }
