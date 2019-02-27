@@ -179,28 +179,28 @@
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
             mat4.scale(objMat, objMat, [s0,s0,s0]);
-            dx.draw(shape0, projMat, objMat);
+            dx.draw(shape0, projMat, objMat, 0.08);
 
             mat4.fromTranslation(objMat, [0,0,250]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
             mat4.scale(objMat, objMat, [s1,s1,s1]);
-            dx.draw(shape0, projMat, objMat);
+            dx.draw(shape0, projMat, objMat, 0.08);
 
             mat4.fromTranslation(objMat, [0,0,-250]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
             // mat4.scale(objMat, objMat, [s2,s2,s2]);
-            dx.draw(shape0, projMat, objMat);
+            dx.draw(shape0, projMat, objMat, 0.08);
 
             mat4.fromTranslation(objMat, [0,0,-750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
             mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
             mat4.scale(objMat, objMat, [s3,s3,s3]);
-            dx.draw(shape0, projMat, objMat);
+            dx.draw(shape0, projMat, objMat, 0.08);
 
             if (p) requestAnimationFrame(render);
         }

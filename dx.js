@@ -24,6 +24,8 @@ var gradedShader;
         uniform mat4 uProjectionMatrix;
         uniform mat4 uNormalMatrix;
 
+        uniform float minShade;
+
         varying lowp vec4 vColor;
 
         void main(void) {
@@ -31,16 +33,17 @@ var gradedShader;
 
             vColor = texture2D(uTexture, aTextureCoord);
 
-            vec4 normal = uNormalMatrix * aNormal;
+            if (minShade < 1.0) {
+                vec4 normal = uNormalMatrix * aNormal;
 
-            float f = normal[2];
+                float f = normal[2];
 
-            //if (f < 0.0) f = 0.0;
-            f = 0.1 + 0.45 + 0.45 * f;
+                f = minShade + (1.0-minShade) * (1.0+f)/2.0;
 
-            vColor[0] *= f;
-            vColor[1] *= f;
-            vColor[2] *= f;
+                vColor[0] *= f;
+                vColor[1] *= f;
+                vColor[2] *= f;
+            }
         }
 
     `);
@@ -64,7 +67,8 @@ var gradedShader;
     const uniforms = {
         projectionMatrix: gl.getUniformLocation(program, 'uProjectionMatrix'),
         texture: gl.getUniformLocation(program, 'uTexture'),
-        normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix')
+        normalMatrix: gl.getUniformLocation(program, 'uNormalMatrix'),
+        minShade: gl.getUniformLocation(program, 'minShade'),
     }
 
     gradedShader = {program, attributes, uniforms};
@@ -130,7 +134,7 @@ function clear() {
 const pjMat = mat4.create();
 const nmMat = mat4.create();
 
-function draw(shape, projectionMatrix, objectMatrix) {
+function draw(shape, projectionMatrix, objectMatrix, minShade) {
     mat4.multiply(pjMat, projectionMatrix, objectMatrix);
     mat4.getRotationMatrix(nmMat, objectMatrix);
 
@@ -142,16 +146,18 @@ function draw(shape, projectionMatrix, objectMatrix) {
         lastProgram = program;
     }
 
-    //if (lastShape !== shape) {
+    if (lastShape !== shape) {
         setAttrPointer(vertices, attributes.vertexPosition, 3);
         setAttrPointer(vertexTexCoords, attributes.vertexTexCoord, 2);
         setAttrPointer(normals, attributes.normal, 3);
         setTexture(texture, uniforms.texture, 0);
         lastShape = shape;
-    //}
+    }
 
     gl.uniformMatrix4fv(uniforms.projectionMatrix, false, pjMat);
     gl.uniformMatrix4fv(uniforms.normalMatrix, false, nmMat);
+    gl.uniform1f(uniforms.minShade, minShade);
+
 
     gl.drawArrays(gl.TRIANGLES, 0, size);
 }
