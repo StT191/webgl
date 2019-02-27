@@ -1,5 +1,10 @@
 "use strict";
 
+function createForm() {
+
+}
+
+
 //
 // Initialize a shader program, so WebGL knows how to draw our data
 //
@@ -48,4 +53,26 @@ function loadShader(gl, type, source) {
     }
 
     return shader;
+}
+
+
+function initBuffer(gl, data, bufferType=null, drawType=null) {
+    bufferType = bufferType || "ARRAY_BUFFER";
+    drawType = drawType || gl.STATIC_DRAW;
+    const TypedArray = {"ARRAY_BUFFER": Float32Array, "ELEMENT_ARRAY_BUFFER": Uint16Array}[bufferType];
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl[bufferType], buffer);
+    gl.bufferData(gl[bufferType], new TypedArray(data), drawType);
+    return buffer;
+}
+
+
+function initAttrPointer(gl, buffer, attributeLocation, size, type=null, normalize=null, stride=0, offset=0) {
+    type = type || gl.FLOAT;    // the data in the buffer is 32bit floats
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.vertexAttribPointer(attributeLocation, size, type, normalize, stride, offset);
+    gl.enableVertexAttribArray(attributeLocation);
+
 }
