@@ -25,6 +25,17 @@
     <script src="dx.js"></script>
     <script>
         const rad = Math.PI / 180;
+
+        {
+            const tVec = vec3.create();
+            mat4.getRotationMatrix = function(out, mat) {
+                mat4.scale(out, mat, vec3.inverse(tVec, mat4.getScaling(tVec, mat)));
+                out[12] = out[13] = out[14] = 0;
+                return out;
+            }
+        }
+
+
         // init
 
         const renderer = document.getElementById("renderer");
@@ -40,12 +51,6 @@
         const tmpVec = vec3.create();
         const tmpQuat = quat.create();
         const tmpMat = mat4.create();
-
-        const zeroVec = vec3.create();
-
-        mat4.getRotationMatrix = function(out, mat) {
-            return mat4.fromRotationTranslation(out, mat4.getRotation(tmpQuat, mat), zeroVec);
-        }
 
 
         function project() {

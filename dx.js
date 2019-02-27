@@ -32,12 +32,11 @@ var gradedShader;
             vColor = texture2D(uTexture, aTextureCoord);
 
             vec4 normal = uNormalMatrix * aNormal;
+
             float f = normal[2];
 
-            if (f < 0.0) f = 0.0;
-
-            f = 0.9 * f + 0.1;
-
+            //if (f < 0.0) f = 0.0;
+            f = 0.1 + 0.45 + 0.45 * f;
 
             vColor[0] *= f;
             vColor[1] *= f;
@@ -72,10 +71,12 @@ var gradedShader;
 }
 
 
-const tmpVec0 = vec3.create();
-const tmpVec1 = vec3.create();
 
 // shapes
+
+const tmpV0 = vec3.create();
+const tmpV1 = vec3.create();
+
 
 function GradedShape(vertixS, texture, triangleS) {
 
@@ -83,10 +84,14 @@ function GradedShape(vertixS, texture, triangleS) {
     let vertices = [], vertexTexCoords = [], normals = [];
 
     for (let [corners, texCoords] of triangleS) {
-        vec3.subtract(tmpVec0, vertixS[corners[1]], vertixS[corners[0]]);
-        vec3.subtract(tmpVec1, vertixS[corners[2]], vertixS[corners[0]]);
 
-        const normal = vec3.normalize(tmpVec0, vec3.cross(tmpVec0, tmpVec0, tmpVec1));
+        const delta1 = vec3.subtract(tmpV0, vertixS[corners[1]], vertixS[corners[0]]);
+        const delta2 = vec3.subtract(tmpV1, vertixS[corners[2]], vertixS[corners[0]]);
+
+        const normal = vec3.normalize(tmpV0, vec3.cross(tmpV0, delta1, delta2));
+
+        if (vec3.dot(normal, vertixS[corners[0]]) < 0) vec3.negate(normal, normal);
+
 
         for (let i=0; i<3; i++) {
 
@@ -137,13 +142,13 @@ function draw(shape, projectionMatrix, objectMatrix) {
         lastProgram = program;
     }
 
-    if (lastShape !== shape) {
+    //if (lastShape !== shape) {
         setAttrPointer(vertices, attributes.vertexPosition, 3);
         setAttrPointer(vertexTexCoords, attributes.vertexTexCoord, 2);
         setAttrPointer(normals, attributes.normal, 3);
         setTexture(texture, uniforms.texture, 0);
         lastShape = shape;
-    }
+    //}
 
     gl.uniformMatrix4fv(uniforms.projectionMatrix, false, pjMat);
     gl.uniformMatrix4fv(uniforms.normalMatrix, false, nmMat);
@@ -244,9 +249,7 @@ function initBuffer(data, bufferType=null, drawType=null) {
 
 
 
-function setAttrPointer(buffer, attributeLocation, size, type=null, normalize=null, stride=0, offset=0) {
-    type = type || gl.FLOAT;    // the data in the buffer is 32bit floats
-
+function setAttrPointer(buffer, attributeLocation, size, type=gl.FLOAT, normalize=false, stride=0, offset=0) {
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.vertexAttribPointer(attributeLocation, size, type, normalize, stride, offset);
     gl.enableVertexAttribArray(attributeLocation);
