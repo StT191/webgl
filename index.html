@@ -23,89 +23,26 @@
 
     <script src="gl-matrix.js"></script>
     <script src="dx.js"></script>
+    <script src="animation-context.js"></script>
     <script src="gradedObject.js"></script>
     <script>
-        const rad = Math.PI / 180;
-
-
         // init
 
         const renderer = document.getElementById("renderer");
-        const dx = DX(renderer.getContext("webgl2"));
+        const gl = renderer.getContext("webgl2");
+
+        const dx = DX(gl);
+        const ac = AnimationContext(gl);
 
         GradedShape.init(dx);
         gradedProgram.init(dx);
 
-        // matrix projection
 
-        const worldMat = mat4.create();
-        const cameraMat = mat4.fromTranslation(mat4.create(), [0, 0, -2000]);
-        const perspectiveMat = mat4.create();
-        const projMat = mat4.create();
+        // go
 
-        const tmpVec = vec3.create();
-        const tmpQuat = quat.create();
-        const tmpMat = mat4.create();
-
-
-        function project() {
-            return mat4.multiply(projMat, perspectiveMat, mat4.multiply(tmpMat, cameraMat, worldMat));
-        }
-
-        // camera
-
-        const dd = 50;
-
-        function translateWorld(by) {
-            return mat4.multiply(worldMat, mat4.fromTranslation(tmpMat, by), worldMat);
-        }
-
-
-        const da = 3*rad;
-
-        function revolveWorld(by) {
-            return mat4.multiply(worldMat, mat4.fromYRotation(tmpMat, by*da), worldMat);
-        }
-
-        function panWorld(by) {
-            return mat4.rotateX(cameraMat, cameraMat, by*da);
-        }
-
-        function zoomWorld(by) {
-            return mat4.multiply(cameraMat, mat4.fromTranslation(tmpMat, [0, 0, by]), cameraMat);
-        }
-
-        /*function rotateCam(axis) {
-            translateWorld(vec3.negate(tmpVec, mat4.getTranslation(tmpVec, viewMat)));
-            mat4.multiply(viewMat, mat4.fromRotation(tmpMat, da, axis), viewMat);
-            translateWorld(vec3.negate(tmpVec, tmpVec));
-            return viewMat;
-        }*/
-
-        zoomWorld(-20*dd);
-        panWorld(8);
-
-        // projection
-
-        window.onresize = function () {
-            const w = renderer.clientWidth;
-            const h = renderer.clientHeight;
-
-            renderer.setAttribute("width", w);
-            renderer.setAttribute("height", h);
-
-            dx.gl.viewport(0, 0, w, h);
-
-            const fieldOfView = 20 * rad;   // in radians
-            const aspect = w / h;
-            const zNear = 1;
-            const zFar = 2000000;
-            mat4.perspective(perspectiveMat, fieldOfView, aspect, zNear, zFar);
-
-            project();
-            render(performance.now(), true);
-        }
-
+        ac.zoomWorld(-1000);
+        ac.panWorld(9);
+        ac.updateProjection();
 
         // shape
 
@@ -138,50 +75,33 @@
                 [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
                 [[0, 7, 4], c0r], [[0, 3, 7], c1r],    // left
                 [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right
-
-                /* [[0, 1, 2], c0], [[0, 2, 3], c1],    // front
-                [[4, 5, 6], c0], [[4, 6, 7], c1],    // back
-                [[0, 1, 5], c0], [[0, 5, 4], c1],    // bottom
-                [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
-                [[0, 4, 7], c0], [[0, 7, 3], c1],    // left
-                [[1, 2, 6], c0], [[1, 6, 5], c1],    // right*/
             ]
         );
 
-        var objMat = mat4.create();
 
         // drawing
-        var p = true;
 
-        var then = 0;
-        var cubeRotation = 0.0;
+        const projectionMatrix = ac.projectionMatrix;
 
-
-
+        var objMat = mat4.create();
         const pjMat = mat4.create();
         const nmMat = mat4.create();
 
         function draw () {
-            mat4.multiply(pjMat, projMat, objMat);
+            mat4.multiply(pjMat, projectionMatrix, objMat);
             mat4.getRotationMatrix(nmMat, objMat);
 
             dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, normalMatrix: nmMat});
         }
 
+        var cubeRotation = 0.0;
 
 
-        function render(now) {
-            if (!now) then = now = performance.now() * 0.001;
-            else now *= 0.001;  // convert to seconds
+        ac.setRender(function (deltaAnimationTime) {
 
-            const deltaTime = now - then;
-            then = now;
-
-            cubeRotation += deltaTime;
-
+            cubeRotation += deltaAnimationTime / 1000; // in seconds
 
             dx.clear();
-
 
             mat4.fromTranslation(objMat, [0,0,750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
@@ -210,69 +130,9 @@
             mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
             mat4.scale(objMat, objMat, [s3,s3,s3]);
             draw();
-
-            if (p) requestAnimationFrame(render);
-        }
-
-        window.onresize();
-        requestAnimationFrame(render);
-
-
-        // keyboard mappings
-
-        window.addEventListener("keydown", function (event) {
-            switch(event.which) {
-                case 65: translateWorld([-dd,   0,   0]); break; // a
-                case 68: translateWorld([ dd,   0,   0]); break; // d
-                case 87: translateWorld([  0,   0, -dd]); break; // w
-                case 83: translateWorld([  0,   0,  dd]); break; // s
-                case 81: translateWorld([  0,  dd,   0]); break; // q
-                case 69: translateWorld([  0, -dd,   0]); break; // e
-
-                case 74: revolveWorld(-1); break; // j
-                case 76: revolveWorld( 1); break; // l
-                case 73: panWorld(-1); break; // i
-                case 75: panWorld( 1); break; // k
-                case 85: zoomWorld(-dd); break; // u
-                case 79: zoomWorld( dd); break; // o
-
-                case 13: // Enter
-                case 32: // Space
-                case 80: if (p) p = false; else { p = true; render(); } break; // p
-
-            }
-
-            project();
-            if (!p) render();
         });
 
-
-        // mouse mappings
-
-        function mousePan(event) {
-            revolveWorld(event.movementX / 10);
-            panWorld(event.movementY / 10);
-
-            project();
-            if (!p) render();
-        }
-
-        function toggleMousePan(direction, event) {
-            if (event.button === 0) switch (direction) {
-                case "down": window.addEventListener("mousemove", mousePan); break;
-                case "up": window.removeEventListener("mousemove", mousePan); break;
-            }
-        }
-
-        window.addEventListener("mousedown", toggleMousePan.bind(null, "down"));
-        window.addEventListener("mouseup", toggleMousePan.bind(null, "up"));
-
-        window.addEventListener("wheel", function (event) {
-            zoomWorld(-event.deltaY * 50);
-            project();
-            if (!p) render();
-        });
-
+        ac.startAnimation();
 
     </script>
 </body>
