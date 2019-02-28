@@ -81,14 +81,28 @@
 
         // drawing
 
-        const projectionMatrix = ac.projectionMatrix;
+        const {
+            worldMatrix, cameraMatrix, perspectiveMatrix, projectionMatrix
+        } = ac;
 
         var objMat = mat4.create();
         const pjMat = mat4.create();
         const nmMat = mat4.create();
 
-        function draw () {
-            mat4.multiply(pjMat, projectionMatrix, objMat);
+        function draw (origin) {
+
+            if (origin) mat4.multiply(pjMat,
+                perspectiveMatrix,
+                mat4.multiply(pjMat,
+                    cameraMatrix,
+                    mat4.multiply(pjMat,
+                        mat4.getRotationMatrix(pjMat, worldMatrix),
+                        objMat
+                    )
+                )
+            );
+
+            else mat4.multiply(pjMat, projectionMatrix, objMat);
             mat4.getRotationMatrix(nmMat, objMat);
 
             dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, normalMatrix: nmMat});
@@ -96,12 +110,15 @@
 
         var cubeRotation = 0.0;
 
-
         ac.setRender(function (deltaAnimationTime) {
 
             cubeRotation += deltaAnimationTime / 1000; // in seconds
 
             dx.clear();
+
+            // origin
+            mat4.fromScaling(objMat, [0.03, 0.03, 0.03]);
+            draw(true);
 
             mat4.fromTranslation(objMat, [0,0,750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
