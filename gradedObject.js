@@ -1,7 +1,7 @@
 "use strict";
 
 
-function GradedShape(vertixS, texture, triangleS, minShade = 0.06) {
+function GradedShape(vertixS, texture, triangleS, shade=[0.1,0.3]) {
 
     const dx = GradedShape.dx;
 
@@ -17,9 +17,6 @@ function GradedShape(vertixS, texture, triangleS, minShade = 0.06) {
         const delta2 = vec3.subtract(tmpV1, vertixS[corners[2]], vertixS[corners[0]]);
 
         const normal = vec3.normalize(tmpV0, vec3.cross(tmpV0, delta1, delta2));
-
-        if (vec3.dot(normal, vertixS[corners[0]]) < 0) vec3.negate(normal, normal);
-
 
         for (let i=0; i<3; i++) {
 
@@ -40,7 +37,7 @@ function GradedShape(vertixS, texture, triangleS, minShade = 0.06) {
 
     if (texture.constructor === Array) texture = dx.createTexture(...texture);
 
-    return {size, vertices, texture, vertexTexCoords, normals, vertixS, texture, triangleS, minShade};
+    return {size, vertices, texture, vertexTexCoords, normals, vertixS, texture, triangleS, shade};
 }
 
 
@@ -50,23 +47,22 @@ GradedShape.init = function (dx) {
 
 
 
-
 const gradedProgram = {
     init: function (dx) {
 
         Object.assign(this, dx.createProgram(
             `
                 attribute vec4 aVertexPosition;
-                attribute vec2 aTextureCoord;
                 attribute vec4 aNormal;
+
+                attribute vec2 aTextureCoord;
 
                 uniform sampler2D uTexture;
 
                 uniform mat4 uProjectionMatrix;
-                uniform mat4 uNormalMatrix;
+                uniform mat4 uLightMatrix;
 
-                uniform float minShade;
-
+                varying lowp float fi;
                 varying lowp vec4 vColor;
 
                 void main(void) {
@@ -74,25 +70,32 @@ const gradedProgram = {
 
                     vColor = texture2D(uTexture, aTextureCoord);
 
-                    if (minShade < 1.0) {
-                        vec4 normal = uNormalMatrix * aNormal;
-
-                        float f = normal[2];
-
-                        f = minShade + (1.0-minShade) * (1.0+f)/2.0;
-
-                        vColor[0] *= f;
-                        vColor[1] *= f;
-                        vColor[2] *= f;
-                    }
+                    vec4 lightNormal = uLightMatrix * aNormal;
+                    fi = lightNormal[2];
                 }
-
             `,
             `
+                uniform lowp vec2 shade;
+
+                varying lowp float fi;
                 varying lowp vec4 vColor;
 
                 void main(void) {
                     gl_FragColor = vColor;
+
+                    if (shade[0] < 1.0) {
+                        lowp float f = fi;
+
+                        if (!gl_FrontFacing) f *= -1.0;
+
+                        lowp float q = 0.1;
+
+                        f = shade[0] + (f>0.0 ? shade[1]+(1.0-shade[1])*f : (1.0+f)*shade[1]) * (1.0-shade[0]);
+
+                        gl_FragColor[0] *= f;
+                        gl_FragColor[1] *= f;
+                        gl_FragColor[2] *= f;
+                    }
                 }
             `,
             {
@@ -101,10 +104,10 @@ const gradedProgram = {
                 normals: ['aNormal', 3],
             },
             {
-                projectionMatrix: ['uProjectionMatrix', 'mat4'],
+                projectionMatrix: ['uProjectionMatrix', 'Matrix4fv'],
                 texture: ['uTexture', 'texture0'],
-                normalMatrix: ['uNormalMatrix', 'mat4'],
-                minShade: ['minShade', 'float'],
+                lightMatrix: ['uLightMatrix', 'Matrix4fv'],
+                shade: ['shade', '2f'],
             }
         ));
 

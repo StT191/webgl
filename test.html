@@ -49,17 +49,12 @@
         var s = 100;
         var s0 = 0.25, s1 = 0.5, s2 = 1.0, s3 = 1.5;
 
-        let y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
+        const y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
 
         const c0 = [y, r, g];
         const c0r = [y, g, r];
         const c1 = [y, g, b];
         const c1r = [y, b, g];
-
-        /*const c0 = [b, b, b];
-        const c0r = [b, b, b];
-        const c1 = [b, b, b];
-        const c1r = [b, b, b];*/
 
         var shape0 = GradedShape(
             [
@@ -75,11 +70,11 @@
             ],
             [
                 [[0, 1, 2], c0], [[0, 2, 3], c1],    // front
-                [[4, 6, 5], c0r], [[4, 7, 6], c1r],    // back
+                /*[[4, 6, 5], c0r], [[4, 7, 6], c1r],    // back
                 [[0, 5, 1], c0r], [[0, 4, 5], c1r],    // bottom
                 [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
                 [[0, 7, 4], c0r], [[0, 3, 7], c1r],    // left
-                [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right
+                [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right*/
             ]
         );
 
@@ -92,6 +87,7 @@
 
         var objMat = mat4.create();
         const pjMat = mat4.create();
+        const nmMat = mat4.create();
         const lMat = mat4.create();
 
         function draw (origin) {
@@ -109,9 +105,10 @@
 
             else mat4.multiply(pjMat, projectionMatrix, objMat);
 
+            mat4.getRotationMatrix(nmMat, pjMat);
             mat4.getRotationMatrix(lMat, objMat);
 
-            dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
+            dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, normalMatrix: nmMat, lightMatrix: lMat});
         }
 
         var cubeRotation = 0.0;
@@ -125,27 +122,6 @@
             // origin
             mat4.fromScaling(objMat, [0.03, 0.03, 0.03]);
             draw(true);
-
-            mat4.fromTranslation(objMat, [0,0,750]);  // amount to translate
-            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
-            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
-            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
-            mat4.scale(objMat, objMat, [s0,s0,s0]);
-            draw();
-
-            mat4.fromTranslation(objMat, [0,0,250]);  // amount to translate
-            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
-            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
-            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
-            mat4.scale(objMat, objMat, [s1,s1,s1]);
-            draw();
-
-            mat4.fromTranslation(objMat, [0,0,-250]);  // amount to translate
-            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
-            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, -1, 0]);
-            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [1,  0, 0]);
-            // mat4.scale(objMat, objMat, [s2,s2,s2]);
-            draw();
 
             mat4.fromTranslation(objMat, [0,0,-750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);

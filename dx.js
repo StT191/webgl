@@ -45,14 +45,24 @@ function DX(gl) {
 
             var set;
 
-            switch (type) {
-                case "mat4": set = mat => gl.uniformMatrix4fv(location, false, mat); break;
-                case "float": set = float => gl.uniform1f(location, float); break;
-            }
-
             if (type.startsWith("texture")) {
                 const unit = type.substr(7);
                 set = texture => setTexture(location, texture, unit);
+            }
+
+            else switch (type) {
+                case "Matrix2fv":  case "Matrix3fv":  case "Matrix4fv":
+                    set = mat => gl["uniform"+type](location, false, mat); break;
+
+                case "2f": case "3f": case "4f": case "2i": case "3i": case "4i":
+                    set = value => gl["uniform"+type](location, ...value); break;
+
+                case "1f": case "1i":
+                case "1fv": case "2fv": case "3fv": case "4fv":
+                case "1iv": case "2iv": case "3iv": case "4iv":
+                default:
+                    set = value => gl["uniform"+type](location, value); break;
+
             }
 
             set.l = location;
