@@ -107,7 +107,7 @@ function AnimationContext(gl) {
 
     // resize event
     window.addEventListener("resize", function (event) {
-        updatePerspective(w, h);
+        updatePerspective();
         updateProjection();
         if (!animation) render();
     });

@@ -25,7 +25,7 @@ function GradedShape(vertixS, texture, triangleS, shade=[0.1,0.3]) {
 
             vertices.push(...vertix);
 
-            vertexTexCoords.push(...texCoords[i]);
+            vertexTexCoords.push(...(texCoords[i]||texCoords[i-1]||texCoords[i-2]));
 
             normals.push(...normal);
         }
@@ -92,9 +92,7 @@ const gradedProgram = {
 
                         f = shade[0] + (f>0.0 ? shade[1]+(1.0-shade[1])*f : (1.0+f)*shade[1]) * (1.0-shade[0]);
 
-                        gl_FragColor[0] *= f;
-                        gl_FragColor[1] *= f;
-                        gl_FragColor[2] *= f;
+                        gl_FragColor.rgb *= f;
                     }
                 }
             `,

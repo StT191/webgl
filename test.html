@@ -38,56 +38,57 @@
         gradedProgram.init(dx);
 
 
-        // go
-
-        ac.zoomWorld(-1000);
-        ac.panWorld(9);
-        ac.updateProjection();
-
         // shape
 
-        var s = 100;
-        var s0 = 0.25, s1 = 0.5, s2 = 1.0, s3 = 1.5;
+        const palette = [
+            [
+                [255,  255,    0,  255], [255,    0,    0,  255],
+                [  0,  255,    0,  255], [  0,    0,  255,  255]
+            ],
+            2, 2
+        ];
 
+        // colors
         const y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
 
-        const c0 = [y, r, g];
-        const c0r = [y, g, r];
-        const c1 = [y, g, b];
-        const c1r = [y, b, g];
 
-        var shape0 = GradedShape(
-            [
-                [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
-                [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
-            ],
-            [
-                [
-                    [255,  255,    0,  255], [255,    0,    0,  255],   // yellow, red
-                    [  0,  255,    0,  255], [  0,    0,  255,  255]    // green, blue
-                ],
-                2, 2
-            ],
-            [
-                [[0, 1, 2], c0], [[0, 2, 3], c1],    // front
-                /*[[4, 6, 5], c0r], [[4, 7, 6], c1r],    // back
-                [[0, 5, 1], c0r], [[0, 4, 5], c1r],    // bottom
-                [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
-                [[0, 7, 4], c0r], [[0, 3, 7], c1r],    // left
-                [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right*/
-            ]
-        );
+        //vertices
+        const p = 50;
+
+        var objMat = mat4.fromTranslation(mat4.create(), [0,-2*p,0]);
+
+
+        ac.panWorld(6);
+
+
+        const vertices = [
+            [-5*p, 0, 0], [5*p, 0, 0], [-5*p, 0, -10*p], [5*p, 0, -10*p], // s0
+            [-4*p, 0, 0], [4*p, 0, 0], [-4*p, 0,  -8*p], [4*p, 0,  -8*p], // s0-1
+
+            [-5*p, p, 0], [5*p, p, 0], [-5*p, p, -10*p], [5*p, p, -10*p], // s1
+            [-4*p, p, 0], [4*p, p, 0], [-4*p, p,  -8*p], [4*p, p,  -8*p], // s1-1
+
+        ];
+
+        const triangles = [
+            [[4, 5, 6], [b]], [[6, 5, 7], [b]],
+
+            [[4, 6,  8], [b]], [[ 8, 6, 10], [b]],
+            [[6, 7, 10], [g]], [[10, 7, 11], [g]],
+        ];
+
+
+        const shape = GradedShape(vertices, palette, triangles);
 
 
         // drawing
+
 
         const {
             worldMatrix, cameraMatrix, perspectiveMatrix, projectionMatrix
         } = ac;
 
-        var objMat = mat4.create();
         const pjMat = mat4.create();
-        const nmMat = mat4.create();
         const lMat = mat4.create();
 
         function draw (origin) {
@@ -105,33 +106,19 @@
 
             else mat4.multiply(pjMat, projectionMatrix, objMat);
 
-            mat4.getRotationMatrix(nmMat, pjMat);
-            mat4.getRotationMatrix(lMat, objMat);
+            mat4.getRotationMatrix(lMat, mat4.multiply(lMat, cameraMatrix, mat4.multiply(lMat, worldMatrix, objMat)));
 
-            dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, normalMatrix: nmMat, lightMatrix: lMat});
+            dx.draw(shape, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
         }
 
-        var cubeRotation = 0.0;
 
         ac.setRender(function (deltaAnimationTime) {
-
-            cubeRotation += deltaAnimationTime / 1000; // in seconds
-
             dx.clear();
-
-            // origin
-            mat4.fromScaling(objMat, [0.03, 0.03, 0.03]);
-            draw(true);
-
-            mat4.fromTranslation(objMat, [0,0,-750]);  // amount to translate
-            mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
-            mat4.rotate(objMat, objMat, 0.7 * cubeRotation, [0, 1, 0]);
-            mat4.rotate(objMat, objMat, 0.2 * cubeRotation, [-1, 0, 0]);
-            mat4.scale(objMat, objMat, [s3,s3,s3]);
             draw();
         });
 
-        ac.startAnimation();
+        ac.updateProjection();
+        ac.render(); //ac.startAnimation();
 
     </script>
 </body>
