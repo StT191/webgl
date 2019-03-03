@@ -1,9 +1,9 @@
 "use strict";
 
 
-function GradedShape(vertixS, texture, triangleS, shade=[0.1,0.3]) {
+function VerTexShape(vertixS, texture, triangleS, shade=[0.4,0.3]) {
 
-    const dx = GradedShape.dx;
+    const dx = VerTexShape.dx;
 
     const tmpV0 = vec3.create();
     const tmpV1 = vec3.create();
@@ -41,8 +41,8 @@ function GradedShape(vertixS, texture, triangleS, shade=[0.1,0.3]) {
 }
 
 
-GradedShape.init = function (dx) {
-    GradedShape.dx = dx;
+VerTexShape.init = function (dx) {
+    VerTexShape.dx = dx;
 }
 
 

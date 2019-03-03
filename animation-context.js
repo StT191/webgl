@@ -1,8 +1,8 @@
 "use strict";
 
-function AnimationContext(gl) {
+function AnimationContext(gl, options) {
 
-    const renderer = gl.canvas;
+    const canvas = gl.canvas;
 
     const deg = Math.PI / 180; // deg to rad
 
@@ -10,6 +10,7 @@ function AnimationContext(gl) {
     // matrixes
     const worldMatrix = mat4.create();
     const cameraMatrix = mat4.fromTranslation(mat4.create(), [0, 0, -2000]);
+    const viewMatrix = mat4.create();
     const perspectiveMatrix = mat4.create();
     const projectionMatrix = mat4.create();
 
@@ -20,10 +21,10 @@ function AnimationContext(gl) {
 
     // projection
 
-    function updatePerspective(w=renderer.clientWidth, h=renderer.clientHeight, fov=20) {
+    function updatePerspective(w=canvas.clientWidth, h=canvas.clientHeight, fov=20) {
 
-        renderer.setAttribute("width", w);
-        renderer.setAttribute("height", h);
+        canvas.setAttribute("width", w);
+        canvas.setAttribute("height", h);
 
         gl.viewport(0, 0, w, h);
 
@@ -36,18 +37,21 @@ function AnimationContext(gl) {
     }
 
     function updateProjection() {
-        return mat4.multiply(projectionMatrix, perspectiveMatrix, mat4.multiply(tmpMat, cameraMatrix, worldMatrix));
+        mat4.multiply(viewMatrix, cameraMatrix, worldMatrix);
+        return mat4.multiply(projectionMatrix, perspectiveMatrix, viewMatrix);
     }
 
 
     // camera
 
     function translateWorld(by) {
-        return mat4.multiply(worldMatrix, mat4.fromTranslation(tmpMat, by), worldMatrix);
+        //return mat4.multiply(worldMatrix, mat4.fromTranslation(tmpMat, by), worldMatrix);
+        return mat4.translate(worldMatrix, worldMatrix, by);
+        //return mat4.apply(worldMatrix, worldMatrix, mat4.translate, by);
     }
 
     function revolveWorld(by) {
-        return mat4.multiply(worldMatrix, mat4.fromYRotation(tmpMat, by*deg), worldMatrix);
+        return mat4.apply(worldMatrix, worldMatrix, mat4.rotateY, by*deg);
     }
 
     function panWorld(by) {
@@ -55,7 +59,7 @@ function AnimationContext(gl) {
     }
 
     function zoomWorld(by) {
-        return mat4.multiply(cameraMatrix, mat4.fromTranslation(tmpMat, [0, 0, by]), cameraMatrix);
+        return mat4.apply(cameraMatrix, cameraMatrix, mat4.translate, [0, 0, by]);
     }
 
     /*function rotateCam(axis) {
@@ -80,6 +84,12 @@ function AnimationContext(gl) {
 
 
     function render(now) {
+        if (canvas.width !== canvas.clientWidth ||
+            canvas.height !== canvas.clientHeight) {
+            updatePerspective();
+            updateProjection();
+        }
+
         if (!now) then = now = performance.now();
 
         const deltaAnimationTime = now - then;
@@ -107,8 +117,6 @@ function AnimationContext(gl) {
 
     // resize event
     window.addEventListener("resize", function (event) {
-        updatePerspective();
-        updateProjection();
         if (!animation) render();
     });
 
@@ -117,7 +125,8 @@ function AnimationContext(gl) {
     const dd = 50;
     const da = 3;
 
-    window.addEventListener("keydown", function (event) {
+
+    if (options.keyboardView) window.addEventListener("keydown", function (event) {
         switch(event.which) {
             case 65: translateWorld([-dd,   0,   0]); break; // a
             case 68: translateWorld([ dd,   0,   0]); break; // d
@@ -146,29 +155,31 @@ function AnimationContext(gl) {
 
     // mouse mappings
 
-    function mousePan(event) {
-        revolveWorld(event.movementX * da/10);
-        panWorld(event.movementY * da/10);
+    if (options.mouseView) {
+        function mousePan(event) {
+            revolveWorld(event.movementX * da/10);
+            panWorld(event.movementY * da/10);
 
-        updateProjection();
-        if (!animation) render();
-    }
-
-    function toggleMousePan(direction, event) {
-        if (event.button === 0) switch (direction) {
-            case "down": window.addEventListener("mousemove", mousePan); break;
-            case "up": window.removeEventListener("mousemove", mousePan); break;
+            updateProjection();
+            if (!animation) render();
         }
+
+        function toggleMousePan(direction, event) {
+            if (event.button === 0) switch (direction) {
+                case "down": window.addEventListener("mousemove", mousePan); break;
+                case "up": window.removeEventListener("mousemove", mousePan); break;
+            }
+        }
+
+        canvas.addEventListener("mousedown", toggleMousePan.bind(null, "down"));
+        window.addEventListener("mouseup", toggleMousePan.bind(null, "up"));
+
+        canvas.addEventListener("wheel", function (event) {
+            zoomWorld(-event.deltaY * dd);
+            updateProjection();
+            if (!animation) render();
+        });
     }
-
-    renderer.addEventListener("mousedown", toggleMousePan.bind(null, "down"));
-    window.addEventListener("mouseup", toggleMousePan.bind(null, "up"));
-
-    renderer.addEventListener("wheel", function (event) {
-        zoomWorld(-event.deltaY * dd);
-        updateProjection();
-        if (!animation) render();
-    });
 
 
     // go
@@ -177,7 +188,7 @@ function AnimationContext(gl) {
 
     return {
         setRender, render, startAnimation, stopAnimation,
-        worldMatrix, cameraMatrix, perspectiveMatrix, projectionMatrix,
+        worldMatrix, cameraMatrix, viewMatrix, perspectiveMatrix, projectionMatrix,
         updatePerspective, updateProjection,
         translateWorld, revolveWorld, panWorld, zoomWorld
     }

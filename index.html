@@ -14,7 +14,7 @@
             position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;
             border: 10px solid yellow;
             border-radius: 20px;
-            background-color: #000;
+            background-color: #fff;
         }
     </style>
 </head>
@@ -24,17 +24,17 @@
     <script src="gl-matrix.js"></script>
     <script src="dx.js"></script>
     <script src="animation-context.js"></script>
-    <script src="gradedObject.js"></script>
+    <script src="graded_shape.js"></script>
     <script>
         // init
 
-        const renderer = document.getElementById("renderer");
-        const gl = renderer.getContext("webgl2");
+        const canvas = document.getElementById("renderer");
+        const gl = canvas.getContext("webgl2");
 
         const dx = DX(gl);
-        const ac = AnimationContext(gl);
+        const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
 
-        GradedShape.init(dx);
+        VerTexShape.init(dx);
         gradedProgram.init(dx);
 
 
@@ -61,7 +61,7 @@
         const c1 = [b, b, b];
         const c1r = [b, b, b];*/
 
-        var shape0 = GradedShape(
+        var shape0 = VerTexShape(
             [
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
@@ -85,12 +85,16 @@
 
 
         // drawing
+        const deg = Math.PI / 180;
 
         const {
-            worldMatrix, cameraMatrix, perspectiveMatrix, projectionMatrix
+            worldMatrix, cameraMatrix, viewMatrix, perspectiveMatrix, projectionMatrix
         } = ac;
 
+        const lightMatrix = mat4.fromRotation(mat4.create(), 45*deg, [1, 0, 1]);
+
         var objMat = mat4.create();
+
         const pjMat = mat4.create();
         const lMat = mat4.create();
 
@@ -109,7 +113,10 @@
 
             else mat4.multiply(pjMat, projectionMatrix, objMat);
 
-            mat4.getRotationMatrix(lMat, objMat);
+            mat4.multiply(lMat,
+                lightMatrix,
+                mat4.getRotationMatrix(lMat, mat4.multiply(lMat, viewMatrix, objMat))
+            );
 
             dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
         }

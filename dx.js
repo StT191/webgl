@@ -9,6 +9,12 @@
         out[12] = out[13] = out[14] = 0;
         return out;
     }
+
+    const tMat = mat4.create();
+
+    mat4.apply = function(out, mat, transform, ...args) {
+        return mat4.multiply(out, transform(tMat, mat4.identity(tMat), ...args), mat);
+    }
 }
 
 
@@ -120,16 +126,13 @@ function DX(gl) {
 
     // texture
     function createTexture(pixels, width, height) {
+
+        pixels = new Uint8Array(([]).concat(...pixels));
+
         const texture = gl.createTexture();
         gl.bindTexture(gl.TEXTURE_2D, texture);
 
-        const level = 0;
-        const internalFormat = gl.RGBA;
-        const border = 0;
-        const srcFormat = gl.RGBA;
-        const srcType = gl.UNSIGNED_BYTE;
-
-        pixels = new Uint8Array(([]).concat(...pixels));  // opaque blue
+        const level = 0, internalFormat = gl.RGBA, border = 0, srcFormat = gl.RGBA, srcType = gl.UNSIGNED_BYTE;
 
         gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, srcFormat, srcType, pixels);
 
