@@ -5,18 +5,19 @@ function VerTexShape(vertixS, texture, triangleS, shade=[0.4,0.3]) {
 
     const dx = VerTexShape.dx;
 
-    const tmpV0 = vec3.create();
-    const tmpV1 = vec3.create();
-
+    // go
     const size = triangleS.length * 3;
-    let vertices = [], vertexTexCoords = [], normals = [];
+    var vertices = [], vertexTexCoords = [], normals = [];
+
+    const tmpVec = vec3.create();
 
     for (let [corners, texCoords] of triangleS) {
 
-        const delta1 = vec3.subtract(tmpV0, vertixS[corners[1]], vertixS[corners[0]]);
-        const delta2 = vec3.subtract(tmpV1, vertixS[corners[2]], vertixS[corners[0]]);
-
-        const normal = vec3.normalize(tmpV0, vec3.cross(tmpV0, delta1, delta2));
+        const normal = vec3.getNormal(tmpVec,
+            vertixS[corners[0]],
+            vertixS[corners[1]],
+            vertixS[corners[2]]
+        );
 
         for (let i=0; i<3; i++) {
 
@@ -37,7 +38,7 @@ function VerTexShape(vertixS, texture, triangleS, shade=[0.4,0.3]) {
 
     if (texture.constructor === Array) texture = dx.createTexture(...texture);
 
-    return {size, vertices, texture, vertexTexCoords, normals, vertixS, texture, triangleS, shade};
+    return {size, vertices, texture, vertexTexCoords, normals, vertixS, triangleS, shade};
 }
 
 

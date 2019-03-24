@@ -1,23 +1,5 @@
 "use strict";
 
-// add functionality to mat4;
-{
-    const tVec = vec3.create();
-
-    mat4.getRotationMatrix = function(out, mat) {
-        mat4.scale(out, mat, vec3.inverse(tVec, mat4.getScaling(tVec, mat)));
-        out[12] = out[13] = out[14] = 0;
-        return out;
-    }
-
-    const tMat = mat4.create();
-
-    mat4.apply = function(out, mat, transform, ...args) {
-        return mat4.multiply(out, transform(tMat, mat4.identity(tMat), ...args), mat);
-    }
-}
-
-
 //go
 function DX(gl) {
 
