@@ -22,9 +22,11 @@
     <canvas id="renderer"></canvas>
 
     <script src="gl-matrix.js"></script>
+    <script src="gl-matrix-extension.js"></script>
     <script src="dx.js"></script>
     <script src="animation-context.js"></script>
     <script src="graded_shape.js"></script>
+    <script src="rotex-shape.js"></script>
     <script>
         // init
 
@@ -35,11 +37,11 @@
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
 
         VerTexShape.init(dx);
+        RoTexShape.init(dx);
         gradedProgram.init(dx);
 
 
         // shape
-
         const palette = [
             [
                 [255,  255,    0,  255], [255,    0,    0,  255],
@@ -53,33 +55,29 @@
 
 
         //vertices
-        const p = 50;
-
-        var objMat = mat4.fromTranslation(mat4.create(), [0,-2*p,0]);
+        const p = 10;
 
 
         ac.panWorld(6);
 
 
-        const vertices = [
-            [-5*p, 0, 0], [5*p, 0, 0], [-5*p, 0, -10*p], [5*p, 0, -10*p], // s0
-            [-4*p, 0, 0], [4*p, 0, 0], [-4*p, 0,  -8*p], [4*p, 0,  -8*p], // s0-1
-
-            [-5*p, p, 0], [5*p, p, 0], [-5*p, p, -10*p], [5*p, p, -10*p], // s1
-            [-4*p, p, 0], [4*p, p, 0], [-4*p, p,  -8*p], [4*p, p,  -8*p], // s1-1
-
-        ];
-
-        const triangles = [
-            [[4, 5, 6], [b]], [[6, 5, 7], [b]],
-
-            [[4, 6,  8], [b]], [[ 8, 6, 10], [b]],
-            [[6, 7, 10], [g]], [[10, 7, 11], [g]],
+        const corners = [
+            [0*p, -10*p, [g]],
+            [5*p, 0*p, [b]],
+            [6*p, 1*p, [b]],
+            [7*p, 3*p, [b]],
+            [8*p, 10*p, [g]],
+            [8*p, 15*p, [r]],
+            [6*p, 17*p, [y]],
+            [8*p, 19*p, [r,y]],
+            [8*p, 20*p, [y]],
+            [0*p, 20*p, [g]]
         ];
 
 
-        const shape = VerTexShape(vertices, palette, triangles);
+        const shape = RoTexShape(corners, palette, 512, 0, 360, [0.3,0.4]);
 
+        console.log(shape);
 
         // drawing
         const deg = Math.PI / 180;
@@ -87,6 +85,8 @@
         const {
             worldMatrix, cameraMatrix, viewMatrix, perspectiveMatrix, projectionMatrix
         } = ac;
+
+        var objMat = mat4.create();
 
         const lightMatrix = mat4.fromRotation(mat4.create(), 45*deg, [1, 0, 1]);
 
