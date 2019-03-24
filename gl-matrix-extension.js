@@ -14,10 +14,23 @@
 
 
     // apply
-    const tMat = mat4.create();
+    const taMat = mat4.create();
 
     mat4.apply = function(out, mat, transform, ...args) {
-        return mat4.multiply(out, transform(tMat, mat4.identity(tMat), ...args), mat);
+        return mat4.multiply(out, transform(taMat, mat4.identity(taMat), ...args), mat);
+    }
+
+
+    // transformation within another
+    const twMat = mat4.create();
+    const tiMat = mat4.create();
+
+    mat4.with = function(out, mat, withMat, transform, ...args) {
+        mat4.multiply(twMat, withMat, mat);
+
+        mat4.apply(twMat, twMat, transform, ...args);
+
+        return mat4.multiply(out, mat4.invert(tiMat, withMat), twMat);
     }
 
 
