@@ -81,37 +81,20 @@
         // drawing
         const deg = Math.PI / 180;
 
-        const {
-            worldMatrix, cameraMatrix, viewMatrix, perspectiveMatrix, projectionMatrix
-        } = ac;
+        const {viewMatrix, perspectiveMatrix, projectionMatrix} = ac;
 
         var objMat = mat4.create();
 
-        const lightMatrix = mat4.fromRotation(mat4.create(), 45*deg, [1, 0, 1]);
+        const lightMatrix = mat4.create();
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateY, -45*deg);
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateX, 45*deg);
 
         const pjMat = mat4.create();
         const lMat = mat4.create();
 
-        function draw (origin) {
-
-            if (origin) mat4.multiply(pjMat,
-                perspectiveMatrix,
-                mat4.multiply(pjMat,
-                    cameraMatrix,
-                    mat4.multiply(pjMat,
-                        mat4.getRotationMatrix(pjMat, worldMatrix),
-                        objMat
-                    )
-                )
-            );
-
-            else mat4.multiply(pjMat, projectionMatrix, objMat);
-
-            mat4.multiply(lMat,
-                lightMatrix,
-                mat4.getRotationMatrix(lMat, mat4.multiply(lMat, viewMatrix, objMat))
-            );
-
+        function draw() {
+            mat4.multiply(pjMat, projectionMatrix, objMat);
+            mat4.multiply(lMat, lightMatrix, mat4.getRotationMatrix(lMat, objMat));
             dx.draw(shape, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
         }
 

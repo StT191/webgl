@@ -122,24 +122,24 @@ function AnimationContext(gl, options) {
     const dd = 50;
 
     if (options.keyboardView) window.addEventListener("keydown", function (event) {
-        switch(event.which) {
-            case 65: translate([ dd,   0,   0]); break; // a
-            case 68: translate([-dd,   0,   0]); break; // d
-            case 87: translate([  0,   0,  dd]); break; // w
-            case 83: translate([  0,   0, -dd]); break; // s
-            case 81: translate([  0, -dd,   0]); break; // q
-            case 69: translate([  0,  dd,   0]); break; // e
+        switch(event.key) {
+            case "a": translate([ dd,   0,   0]); break;
+            case "d": translate([-dd,   0,   0]); break;
+            case "w": translate([  0,   0,  dd]); break;
+            case "s": translate([  0,   0, -dd]); break;
+            case "q": translate([  0, -dd,   0]); break;
+            case "e": translate([  0,  dd,   0]); break;
 
-            /*case 74: revolveWorld(-da); break; // j
-            case 76: revolveWorld( da); break; // l
-            case 73: panWorld(-da); break; // i
-            case 75: panWorld( da); break; // k
-            case 85: zoomWorld(-dd); break; // u
-            case 79: zoomWorld( dd); break; // o*/
+            /*case "j": revolveWorld(-da); break;
+            case "l": revolveWorld( da); break;
+            case "i": panWorld(-da); break;
+            case "k": panWorld( da); break;
+            case "u": zoomWorld(-dd); break;
+            case "o": zoomWorld( dd); break;*/
 
-            case 13: // Enter
-            case 32: // Space
-            case 80: if (animation) stopAnimation(); else startAnimation(); break; // p
+            case "Enter":
+            case " ":
+            case "p": if (animation) stopAnimation(); else startAnimation(); break; // p
         }
 
         updateProjection();
@@ -152,7 +152,7 @@ function AnimationContext(gl, options) {
 
     if (options.mouseView) {
 
-        function mousePan(event) {
+        function onMouseMove(event) {
 
             pan(event.movementX * da);
             tilt(event.movementY * da);
@@ -162,14 +162,17 @@ function AnimationContext(gl, options) {
         }
 
         canvas.addEventListener("mouseup", function () {
-            if (document.pointerLockElement !== canvas) {
+            if (document.pointerLockElement !== canvas)
                 canvas.requestPointerLock();
-                window.addEventListener("mousemove", mousePan);
-            }
-            else {
+            else
                 document.exitPointerLock();
-                window.removeEventListener("mousemove", mousePan);
-            }
+        });
+
+        document.addEventListener('pointerlockchange', function() {
+             if (document.pointerLockElement === canvas)
+                window.addEventListener("mousemove", onMouseMove);
+             else
+                window.removeEventListener("mousemove", onMouseMove);
         });
 
         /*canvas.addEventListener("wheel", function (event) {

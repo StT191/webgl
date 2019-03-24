@@ -24,7 +24,7 @@
     <script src="gl-matrix.js"></script>
     <script src="gl-matrix-extension.js"></script>
     <script src="dx.js"></script>
-    <script src="animation-context.js"></script>
+    <script src="first-person-context.js"></script>
     <script src="graded_shape.js"></script>
     <script>
         // init
@@ -41,8 +41,8 @@
 
         // go
 
-        ac.zoomWorld(-1000);
-        ac.panWorld(9);
+        ac.translate([0, -500, -1000]);
+        ac.tilt(9);
         ac.updateProjection();
 
         // shape
@@ -50,7 +50,8 @@
         var s = 100;
         var s0 = 0.25, s1 = 0.5, s2 = 1.0, s3 = 1.5;
 
-        let y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
+        let y = [0,0], r = [1,0], g = [0,1], b = [1,1];
+        // let y = [0,0], r = [0,0], g = [0,0], b = [0,0];
 
         const c0 = [y, r, g];
         const c0r = [y, g, r];
@@ -88,37 +89,21 @@
         // drawing
         const deg = Math.PI / 180;
 
-        const {
-            worldMatrix, cameraMatrix, viewMatrix, perspectiveMatrix, projectionMatrix
-        } = ac;
+        const {viewMatrix, perspectiveMatrix, projectionMatrix} = ac;
 
-        const lightMatrix = mat4.fromRotation(mat4.create(), 45*deg, [1, 0, 1]);
+        const lightMatrix = mat4.create();
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateY, -45*deg);
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateX, 45*deg);
+
 
         var objMat = mat4.create();
 
         const pjMat = mat4.create();
         const lMat = mat4.create();
 
-        function draw (origin) {
-
-            if (origin) mat4.multiply(pjMat,
-                perspectiveMatrix,
-                mat4.multiply(pjMat,
-                    cameraMatrix,
-                    mat4.multiply(pjMat,
-                        mat4.getRotationMatrix(pjMat, worldMatrix),
-                        objMat
-                    )
-                )
-            );
-
-            else mat4.multiply(pjMat, projectionMatrix, objMat);
-
-            mat4.multiply(lMat,
-                lightMatrix,
-                mat4.getRotationMatrix(lMat, mat4.multiply(lMat, viewMatrix, objMat))
-            );
-
+        function draw() {
+            mat4.multiply(pjMat, projectionMatrix, objMat);
+            mat4.multiply(lMat, lightMatrix, mat4.getRotationMatrix(lMat, objMat));
             dx.draw(shape0, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
         }
 
@@ -132,7 +117,7 @@
 
             // origin
             mat4.fromScaling(objMat, [0.03, 0.03, 0.03]);
-            draw(true);
+            draw();
 
             mat4.fromTranslation(objMat, [0,0,750]);  // amount to translate
             mat4.rotate(objMat, objMat, cubeRotation, [0, 0, -1]);
