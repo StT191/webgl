@@ -67,7 +67,7 @@ function AnimationContext(gl, options) {
     translate([0, 0, -2000]);
 
 
-    // animation
+    // frame
 
     var frame = ()=>{};
 
@@ -75,27 +75,9 @@ function AnimationContext(gl, options) {
         frame = frameFn;
     }
 
+    // animation
 
     var animation = false;
-    var then = 0;
-
-
-    function render(now) {
-        if (canvas.width !== canvas.clientWidth ||
-            canvas.height !== canvas.clientHeight) {
-            updatePerspective();
-            updateProjection();
-        }
-
-        if (!now) then = now = performance.now();
-
-        const deltaAnimationTime = now - then;
-        then = now;
-
-        frame(deltaAnimationTime);
-
-        if (animation) requestAnimationFrame(render);
-    }
 
 
     function startAnimation() {
@@ -112,6 +94,47 @@ function AnimationContext(gl, options) {
     }
 
 
+    // render
+
+    var keybAnimation = false;
+    var keySet = new Set();
+
+    const dt = 20, da = 1/10, dak = 1/2;
+
+    var then = 0;
+
+
+    function render(now) {
+        if (canvas.width !== canvas.clientWidth ||
+            canvas.height !== canvas.clientHeight) {
+            updatePerspective();
+            updateProjection();
+        }
+
+        if (keySet.size) {
+            for (let key of keySet) switch (key) {
+                case "a": translate([ dt,   0,   0]); break;
+                case "d": translate([-dt,   0,   0]); break;
+                case "w": translate([  0,   0,  dt]); break;
+                case "s": translate([  0,   0, -dt]); break;
+                case "q": translate([  0, -dt,   0]); break;
+                case "e": translate([  0,  dt,   0]); break;
+                case "j": pan(-dak); break;
+                case "l": pan( dak); break;
+                case "i": tilt( dak); break;
+                case "k": tilt(-dak); break;
+            }
+            updateProjection();
+        }
+
+        if (!now || !animation) then = now = performance.now();
+        frame(now - then);
+        then = now;
+
+        if (animation || keybAnimation) requestAnimationFrame(render);
+    }
+
+
     // resize event
     window.addEventListener("resize", function (event) {
         if (!animation) render();
@@ -119,36 +142,39 @@ function AnimationContext(gl, options) {
 
 
     // keyboard mappings
-    const dd = 50;
 
-    if (options.keyboardView) window.addEventListener("keydown", function (event) {
-        switch(event.key) {
-            case "a": translate([ dd,   0,   0]); break;
-            case "d": translate([-dd,   0,   0]); break;
-            case "w": translate([  0,   0,  dd]); break;
-            case "s": translate([  0,   0, -dd]); break;
-            case "q": translate([  0, -dd,   0]); break;
-            case "e": translate([  0,  dd,   0]); break;
+    if (options.mouseView) {
 
-            /*case "j": revolveWorld(-da); break;
-            case "l": revolveWorld( da); break;
-            case "i": panWorld(-da); break;
-            case "k": panWorld( da); break;
-            case "u": zoomWorld(-dd); break;
-            case "o": zoomWorld( dd); break;*/
+        window.addEventListener("keydown", function (event) {
+            switch(event.key) {
 
-            case "Enter":
-            case " ":
-            case "p": if (animation) stopAnimation(); else startAnimation(); break; // p
-        }
+                case "a": case "d": case "w": case "s": case "q": case "e":
+                case "j": case "l": case "i": case "k":
+                    keySet.add(event.key);
+                    if (!keybAnimation) {
+                        keybAnimation = true;
+                        if (!animation) render();
+                    }
+                    break;
 
-        updateProjection();
-        if (!animation) render();
-    });
+                case "Enter": case " ": case "p":
+                    if (animation) stopAnimation(); else startAnimation();
+                    break;
+            }
+        });
 
+        window.addEventListener("keyup", function (event) {
+            switch(event.key) {
+                case "a": case "d": case "w": case "s": case "q": case "e":
+                case "j": case "l": case "i": case "k":
+                    keySet.delete(event.key);
+                    if (!keySet.size) keybAnimation = false;
+                    break;
+            }
+        });
+    }
 
     // mouse mappings
-    const da = 1/10;
 
     if (options.mouseView) {
 
@@ -158,7 +184,7 @@ function AnimationContext(gl, options) {
             tilt(event.movementY * da);
 
             updateProjection();
-            if (!animation) render();
+            if (!animation && !keybAnimation) render();
         }
 
         canvas.addEventListener("mouseup", function () {
@@ -188,7 +214,7 @@ function AnimationContext(gl, options) {
     updateProjection();
 
     return {
-        setRender, render, startAnimation, stopAnimation,
+        setRender, render, startAnimation, stopAnimation, keySet,
         translationMatrix, panMatrix, /*tiltMatrix,*/ viewMatrix, perspectiveMatrix, projectionMatrix,
         updatePerspective, updateProjection,
         translate, pan, tilt
