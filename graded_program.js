@@ -1,53 +1,5 @@
 "use strict";
 
-
-function VerTexShape(vertixS, texture, triangleS, shade=[0.4,0.3]) {
-
-    const dx = VerTexShape.dx;
-
-    // go
-    const size = triangleS.length * 3;
-    var vertices = [], vertexTexCoords = [], normals = [];
-
-    const tmpVec = vec3.create();
-
-    for (let [corners, texCoords] of triangleS) {
-
-        const normal = vec3.getNormal(tmpVec,
-            vertixS[corners[0]],
-            vertixS[corners[1]],
-            vertixS[corners[2]]
-        );
-
-        for (let i=0; i<3; i++) {
-
-            const vertix = vertixS[corners[i]];
-            if (!vertix) throw new Error(`undefined index ${corners[i]} in vertices`);
-
-            vertices.push(...vertix);
-
-            vertexTexCoords.push(...(texCoords[i]||texCoords[i-1]||texCoords[i-2]));
-
-            normals.push(...normal);
-        }
-    }
-
-    vertices = dx.initBuffer(vertices);
-    vertexTexCoords = dx.initBuffer(vertexTexCoords);
-    normals = dx.initBuffer(normals);
-
-    if (texture.constructor === Array) texture = dx.createTexture(...texture);
-
-    return {size, vertices, texture, vertexTexCoords, normals, vertixS, triangleS, shade};
-}
-
-
-VerTexShape.init = function (dx) {
-    VerTexShape.dx = dx;
-}
-
-
-
 const gradedProgram = {
     init: function (dx) {
 

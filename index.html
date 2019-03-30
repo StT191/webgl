@@ -25,7 +25,9 @@
     <script src="gl-matrix-extension.js"></script>
     <script src="dx.js"></script>
     <script src="first-person-context.js"></script>
-    <script src="graded_shape.js"></script>
+    <script src="graded_program.js"></script>
+    <script src="shape.js"></script>
+    <script src="ver-tex.js"></script>
     <script>
         // init
 
@@ -35,8 +37,8 @@
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
 
-        VerTexShape.init(dx);
         gradedProgram.init(dx);
+        Shape.init(dx);
 
 
         // go
@@ -63,25 +65,24 @@
         const c1 = [b, b, b];
         const c1r = [b, b, b];*/
 
-        var shape0 = VerTexShape(
-            [
+        var shape0 = Shape(
+            VerTex([
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
-            ],
-            [
-                [
-                    [255,  255,    0,  255], [255,    0,    0,  255],   // yellow, red
-                    [  0,  255,    0,  255], [  0,    0,  255,  255]    // green, blue
-                ],
-                2, 2
-            ],
-            [
+            ], [
                 [[0, 1, 2], c0], [[0, 2, 3], c1],    // front
                 [[4, 6, 5], c0r], [[4, 7, 6], c1r],    // back
                 [[0, 5, 1], c0r], [[0, 4, 5], c1r],    // bottom
                 [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
                 [[0, 7, 4], c0r], [[0, 3, 7], c1r],    // left
                 [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right
+            ]),
+            [
+                [
+                    [255,  255,    0,  255], [255,    0,    0,  255],   // yellow, red
+                    [  0,  255,    0,  255], [  0,    0,  255,  255]    // green, blue
+                ],
+                2, 2
             ]
         );
 

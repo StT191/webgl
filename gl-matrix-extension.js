@@ -1,6 +1,6 @@
 "use strict";
 
-// add functionality gl-matrix
+// add functionality to gl-matrix
 {
 
     // getRotationMatrix

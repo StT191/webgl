@@ -25,8 +25,9 @@
     <script src="gl-matrix-extension.js"></script>
     <script src="dx.js"></script>
     <script src="first-person-context.js"></script>
-    <script src="graded_shape.js"></script>
-    <script src="rotex-shape.js"></script>
+    <script src="graded_program.js"></script>
+    <script src="shape.js"></script>
+    <script src="ro-tex.js"></script>
     <script>
         // init
 
@@ -36,9 +37,8 @@
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
 
-        VerTexShape.init(dx);
-        RoTexShape.init(dx);
         gradedProgram.init(dx);
+        Shape.init(dx);
 
 
         // shape
@@ -75,7 +75,7 @@
         ];
 
 
-        const shape = RoTexShape(corners, palette, 512, 0, 360, [0.3,0.4]);
+        const shape = Shape(RoTex(corners, 512, 0, 360), palette, [0.3,0.4]);
 
 
         // drawing
