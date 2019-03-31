@@ -24,8 +24,8 @@
     <script src="lib/gl-matrix.js"></script>
     <script src="lib/gl-matrix-extension.js"></script>
     <script src="lib/dx.js"></script>
-    <script src="lib/first-person-context.js"></script>
-    <script src="lib/graded_program.js"></script>
+    <script src="lib/firstPersonContext.js"></script>
+    <script src="lib/stdShader.js"></script>
     <script src="lib/shape.js"></script>
     <script>
         // init
@@ -36,7 +36,7 @@
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
 
-        gradedProgram.init(dx);
+        stdShader.init(dx);
         Shape.init(dx);
 
 
@@ -57,7 +57,7 @@
         function draw(shape) {
             mat4.multiply(pjMat, projectionMatrix, objMat);
             mat4.multiply(lMat, lightMatrix, mat4.getRotationMatrix(lMat, objMat));
-            dx.draw(shape, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
+            dx.draw(shape, stdShader, {projectionMatrix: pjMat, lightMatrix: lMat});
         }
 
 
