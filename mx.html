@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Rotex</title>
+    <title>MX</title>
     <meta charset="utf-8">
 
     <style>
@@ -27,7 +27,6 @@
     <script src="lib/first-person-context.js"></script>
     <script src="lib/graded_program.js"></script>
     <script src="lib/shape.js"></script>
-    <script src="lib/ro-tex.js"></script>
     <script>
         // init
 
@@ -39,43 +38,6 @@
 
         gradedProgram.init(dx);
         Shape.init(dx);
-
-
-        // shape
-        const palette = dx.Texture(
-            [
-                [255,  255,    0,  255], [255,    0,    0,  255],
-                [  0,  255,    0,  255], [  0,    0,  255,  255]
-            ],
-            2, 2
-        );
-
-        // colors
-        const y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
-
-
-        //vertices
-        const p = 10;
-
-
-        //ac.panWorld(6);
-
-
-        const corners = [
-            [0*p, -10*p, [g]],
-            [5*p, 0*p, [b]],
-            [6*p, 1*p, [b]],
-            [7*p, 3*p, [b]],
-            [8*p, 10*p, [g]],
-            [8*p, 15*p, [r]],
-            [6*p, 17*p, [y]],
-            [8*p, 19*p, [r,y]],
-            [8*p, 20*p, [y]],
-            [0*p, 20*p, [g]]
-        ];
-
-
-        const shape = Shape.RoTex(corners, 512, 0, 360, {texture: palette});
 
 
         // drawing
@@ -92,20 +54,79 @@
         const pjMat = mat4.create();
         const lMat = mat4.create();
 
-        function draw() {
+        function draw(shape) {
             mat4.multiply(pjMat, projectionMatrix, objMat);
             mat4.multiply(lMat, lightMatrix, mat4.getRotationMatrix(lMat, objMat));
             dx.draw(shape, gradedProgram, {projectionMatrix: pjMat, lightMatrix: lMat});
         }
 
 
+        var angle = 0;
+        const rate = 10 / 1000; // deg/ms
+
+        // shape
+        var shape;
+
         ac.setRender(function (deltaAnimationTime) {
+
+            angle += deltaAnimationTime * rate;
+            if (angle > 360) angle -= 360;
+
             dx.clear();
-            draw();
+
+            mat4.fromYRotation(objMat, angle*deg);
+            //mat4.scale(objMat, objMat, [200, 200, 200]);
+
+            draw(shape);
+
         });
 
-        ac.updateProjection();
-        ac.render(); //ac.startAnimation();
+
+        ac.translate([0, -340, -1000]);
+        ac.tilt(9);
+
+        (async () => {
+
+            const response = await fetch("shapes/mx.raw");
+            const data = await response.arrayBuffer();
+
+            const [vL, tL, fL] = new Uint32Array(data, 0, 12/4);
+
+            const vertices = new Float32Array(data, 12, vL/4);
+            const texCoords = new Uint32Array(data, 12+vL, tL/4);
+            const faces = new Uint32Array(data, 12+vL+tL, fL/4);
+
+
+            const triangles = [];
+
+            for (let i=0; i<faces.length; i+=3) {
+
+                const a = faces[i] * 3;
+                const b = faces[i+1] * 3;
+                const c = faces[i+2] * 3;
+                //const d = faces[i+4] * 3;
+
+                triangles.push([
+                    [vertices.subarray(a, a+3), [1,1]],
+                    [vertices.subarray(b, b+3), [1,1]],
+                    [vertices.subarray(c, c+3), [1,1]]
+                ]);
+
+                /*triangles.push([
+                    [vertices.subarray(a, a+3), [1,1]],
+                    [vertices.subarray(c, c+3), [1,1]],
+                    [vertices.subarray(d, d+3), [1,1]]
+                ]);*/
+            }
+
+            shape = Shape.Triangles(triangles, {texture: dx.Texture([[255, 0, 0, 255]], 1, 1)});
+
+            ac.updateProjection();
+            ac.startAnimation();
+        })
+        ().then(e=>console.log(e), e=>console.log(e));
+
+
 
     </script>
 </body>

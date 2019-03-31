@@ -1,33 +1,32 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WGL</title>
+    <title>Cubes</title>
     <meta charset="utf-8">
 
     <style>
         * { padding: 0; margin: 0; box-sizing: border-box; }
 
-        body { background-color: #000; }
+        body { background-color: #000000; }
 
         #renderer {
             width: 100%; height: 100%;
             position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;
-            border: 10px solid yellow;
-            border-radius: 20px;
-            background-color: #fff;
+            border: 5px solid black;
+            border-radius: 7px;
+            background-color: #ffffff;
         }
     </style>
 </head>
 <body>
     <canvas id="renderer"></canvas>
 
-    <script src="gl-matrix.js"></script>
-    <script src="gl-matrix-extension.js"></script>
-    <script src="dx.js"></script>
-    <script src="first-person-context.js"></script>
-    <script src="graded_program.js"></script>
-    <script src="shape.js"></script>
-    <script src="ver-tex.js"></script>
+    <script src="lib/gl-matrix.js"></script>
+    <script src="lib/gl-matrix-extension.js"></script>
+    <script src="lib/dx.js"></script>
+    <script src="lib/first-person-context.js"></script>
+    <script src="lib/graded_program.js"></script>
+    <script src="lib/shape.js"></script>
     <script>
         // init
 
@@ -65,8 +64,8 @@
         const c1 = [b, b, b];
         const c1r = [b, b, b];*/
 
-        var shape0 = Shape(
-            VerTex([
+        var shape0 = Shape.VerTex(
+            [
                 [-s, -s,  s], [ s, -s,  s], [ s,  s,  s], [-s,  s,  s],
                 [-s, -s, -s], [ s, -s, -s], [ s,  s, -s], [-s,  s, -s],
             ], [
@@ -76,16 +75,15 @@
                 [[3, 2, 6], c0], [[3, 6, 7], c1],    // top
                 [[0, 7, 4], c0r], [[0, 3, 7], c1r],    // left
                 [[1, 6, 2], c0r], [[1, 5, 6], c1r],    // right
-            ]),
-            [
+            ],
+            {texture: dx.Texture(
                 [
                     [255,  255,    0,  255], [255,    0,    0,  255],   // yellow, red
                     [  0,  255,    0,  255], [  0,    0,  255,  255]    // green, blue
                 ],
                 2, 2
-            ]
+            )}
         );
-
 
         // drawing
         const deg = Math.PI / 180;
