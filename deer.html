@@ -27,12 +27,14 @@
     <script src="lib/firstPersonContext.js"></script>
     <script src="lib/stdShader.js"></script>
     <script src="lib/shape.js"></script>
-    <script src="shapes/deer.js"></script>
-    <script>
+    <script src="lib/parseWavObj.js"></script>
+
+    <script>(async () => {
+
         // init
 
         const canvas = document.getElementById("renderer");
-        const gl = canvas.getContext("webgl2");
+        const gl = canvas.getContext("webgl");
 
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
@@ -46,7 +48,9 @@
         const green = dx.Texture([[0, 255, 0, 255]], 1, 1);
         const blue = dx.Texture([[0, 0, 255, 255]], 1, 1);
 
-        const deerShape = Shape.Triangles(deer);
+        const raw = await (await fetch("shapes/deer.obj")).text();
+
+        const deerShape = Shape.Triangles(parseWavObj(raw));
 
         const redDeer = Object.assign({}, deerShape, {texture: red});
         const greenDeer = Object.assign({}, deerShape, {texture: green});
@@ -111,6 +115,8 @@
         ac.updateProjection();
         ac.startAnimation();
 
+
+    })().catch(e => console.log(e));
     </script>
 </body>
 </html>

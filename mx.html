@@ -27,11 +27,12 @@
     <script src="lib/firstPersonContext.js"></script>
     <script src="lib/stdShader.js"></script>
     <script src="lib/shape.js"></script>
+    <script src="lib/parseWavObj.js"></script>
     <script>
         // init
 
         const canvas = document.getElementById("renderer");
-        const gl = canvas.getContext("webgl2");
+        const gl = canvas.getContext("webgl");
 
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
@@ -87,45 +88,21 @@
 
         (async () => {
 
-            const response = await fetch("shapes/mx.raw");
-            const data = await response.arrayBuffer();
+            const raw = await (await fetch("shapes/mx.obj")).text();
 
-            const [vL, tL, fL] = new Uint32Array(data, 0, 12/4);
-
-            const vertices = new Float32Array(data, 12, vL/4);
-            const texCoords = new Uint32Array(data, 12+vL, tL/4);
-            const faces = new Uint32Array(data, 12+vL+tL, fL/4);
-
-
-            const triangles = [];
-
-            for (let i=0; i<faces.length; i+=3) {
-
-                const a = faces[i] * 3;
-                const b = faces[i+1] * 3;
-                const c = faces[i+2] * 3;
-                //const d = faces[i+4] * 3;
-
-                triangles.push([
-                    [vertices.subarray(a, a+3), [1,1]],
-                    [vertices.subarray(b, b+3), [1,1]],
-                    [vertices.subarray(c, c+3), [1,1]]
-                ]);
-
-                /*triangles.push([
-                    [vertices.subarray(a, a+3), [1,1]],
-                    [vertices.subarray(c, c+3), [1,1]],
-                    [vertices.subarray(d, d+3), [1,1]]
-                ]);*/
-            }
-
-            shape = Shape.Triangles(triangles, {texture: dx.Texture([[255, 0, 0, 255]], 1, 1)});
+            shape = Shape.Triangles(
+                parseWavObj(raw),
+                {texture: dx.Texture([[255, 0, 0, 255]], 1, 1)}
+            );
 
             ac.updateProjection();
             ac.startAnimation();
-        })
-        ().then(e=>console.log(e), e=>console.log(e));
 
+            /*const texture = new Image();
+            texture.src = "tex/sandstone.jpg";
+            texture.onload = () => shape.texture = dx.Texture(texture);*/
+        })
+        ().catch(e=>console.log(e));
 
 
     </script>

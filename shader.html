@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Shader</title>
+    <meta charset="utf-8">
+
+    <style>
+        * { padding: 0; margin: 0; box-sizing: border-box; }
+
+        body { background-color: #000000; }
+
+        #renderer {
+            width: 100%; height: 100%;
+            position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px;
+            border: 5px solid black;
+            border-radius: 7px;
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderer"></canvas>
+
+    <script src="lib/gl-matrix.js"></script>
+    <script src="lib/dx.js"></script>
+    <script>
+        // init
+
+        const canvas = document.getElementById("renderer");
+        const gl = canvas.getContext("webgl");
+
+        const dx = DX(gl);
+
+        const program = dx.Program(
+            `
+                attribute vec4 aVertexPosition;
+
+                varying lowp vec2 v;
+
+                void main(void) {
+                    gl_Position = aVertexPosition;
+                    v = aVertexPosition.xy;
+                }
+            `,
+            `
+                varying lowp vec2 v;
+                uniform lowp float as;
+                uniform lowp float f;
+
+                void main(void) {
+                    //lowp float d = length(vec2(v.x*as, v.y));
+                    //lowp float m = sin((f*10.0 + 40.0) * d);
+                    mediump float pi = radians(180.0);
+                    mediump float sc = 30.0;
+
+                    lowp float m = cos((v.y + cos(v.x * as * sc + pi*f) / sc)*sc);
+                    lowp float n = cos((v.y + cos(v.x * as * sc - pi*f) / sc)*sc);
+                    lowp float o = cos((v.x * as + cos(v.y * sc + pi*f) / sc)*sc);
+                    lowp float p = cos((v.x * as + cos(v.y * sc - pi*f) / sc)*sc);
+                    //highp float n = sin((f*10.0 + 40.0) * d);
+
+                    gl_FragColor = vec4(m+p, n+o, n+p+o, 1);
+                }
+            `,
+            {
+                vertices: ["aVertexPosition", 2],
+            },
+            {
+                f: ["f", "1f"],
+                as: ["as", "1f"],
+            }
+        );
+
+        const shape = {
+            size: 6,
+            vertices: dx.Buffer([-1,-1, -1,1, 1,1, 1,1, 1,-1, -1,-1])
+        };
+
+        dx.setSize();
+
+        function draw(ts) {
+            dx.clear();
+            dx.draw(shape, program, {
+                f: Math.sin(ts/1000),
+                as: canvas.clientWidth / canvas.clientHeight
+            });
+
+            requestAnimationFrame(draw);
+        }
+
+        draw();
+
+    </script>
+</body>
+</html>

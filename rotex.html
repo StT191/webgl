@@ -27,12 +27,11 @@
     <script src="lib/firstPersonContext.js"></script>
     <script src="lib/stdShader.js"></script>
     <script src="lib/shape.js"></script>
-    <script src="lib/ro-tex.js"></script>
     <script>
         // init
 
         const canvas = document.getElementById("renderer");
-        const gl = canvas.getContext("webgl2");
+        const gl = canvas.getContext("webgl");
 
         const dx = DX(gl);
         const ac = AnimationContext(gl, {keyboardView: true, mouseView: true});
@@ -44,14 +43,20 @@
         // shape
         const palette = dx.Texture(
             [
-                [255,  255,    0,  255], [255,    0,    0,  255],
-                [  0,  255,    0,  255], [  0,    0,  255,  255]
+                [255,  255,    0,  255],
+                [255,    0,    0,  255],
+                [  0,  255,    0,  255],
+                [  0,    0,  255,  255]
             ],
-            2, 2
+            1, 4
         );
 
         // colors
-        const y = [0,0], r = [1,0], g = [0,1], b = [1, 1];
+        function tC(i) {
+            return (2*i + 1) / (2*4);
+        }
+
+        const y = tC(0), r = tC(1), g = tC(2), b = tC(3);
 
 
         //vertices
@@ -60,22 +65,39 @@
 
         //ac.panWorld(6);
 
+        /*const corners = [
+            [[0*p, -10*p], [g,g], []],
+            [[5*p,   0*p], [b,b], []],
+            [[6*p,   1*p], [b,b], []],
+            [[7*p,   3*p], [b,b], []],
+            [[8*p,  10*p], [g,g], []],
+            [[8*p,  15*p], [r,r], []],
+            [[6*p,  17*p], [y,y], []],
+            [[8*p,  19*p], [r,y], []],
+            [[8*p,  20*p], [y,y], []],
+            [[0*p,  20*p], [y,y], []]
+        ];*/
 
         const corners = [
-            [0*p, -10*p, [g]],
-            [5*p, 0*p, [b]],
-            [6*p, 1*p, [b]],
-            [7*p, 3*p, [b]],
-            [8*p, 10*p, [g]],
-            [8*p, 15*p, [r]],
-            [6*p, 17*p, [y]],
-            [8*p, 19*p, [r,y]],
-            [8*p, 20*p, [y]],
-            [0*p, 20*p, [g]]
-        ];
+            [0*p, -10*p],
+            [5*p,   0*p],
+            [6*p,   1*p],
+            [7*p,   3*p],
+            [8*p,  10*p],
+            [8*p,  15*p],
+            [6*p,  17*p],
+            [8*p,  19*p],
+            [8*p,  20*p],
+            [0*p,  20*p]
+        ].map(v => [v, [1 - (v[1]+10*p)/(30*p)], []]);
 
 
-        const shape = Shape.RoTex(corners, 512, 0, 360, {texture: palette});
+        const shape = Shape.RoTex(corners, 256, 0, 360, true, {texture: palette});
+
+        /*const texture = new Image();
+        texture.src = "mx.jpg";
+
+        texture.onload = () => shape.texture = dx.Texture(texture);*/
 
 
         // drawing
