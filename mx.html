@@ -49,8 +49,9 @@
         var objMat = mat4.create();
 
         const lightMatrix = mat4.create();
-        mat4.apply(lightMatrix, lightMatrix, mat4.rotateY, -45*deg);
-        mat4.apply(lightMatrix, lightMatrix, mat4.rotateX, 45*deg);
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateY, -15*deg);
+        mat4.apply(lightMatrix, lightMatrix, mat4.rotateX, 15*deg);
+        mat4.apply(lightMatrix, lightMatrix, mat4.scale, [-1, -1, -1]);
 
         const pjMat = mat4.create();
         const lMat = mat4.create();
@@ -76,7 +77,7 @@
             dx.clear();
 
             mat4.fromYRotation(objMat, angle*deg);
-            //mat4.scale(objMat, objMat, [200, 200, 200]);
+            mat4.scale(objMat, objMat, [100, -100, 100]);
 
             draw(shape);
 
@@ -88,19 +89,42 @@
 
         (async () => {
 
-            const raw = await (await fetch("shapes/mx.obj")).text();
+            const raw = await (await fetch("shapes/earth.obj")).text();
+
+            const mx = parseWavObj(raw);
+
+            /*let lx = Infinity, ly = Infinity, ux = -Infinity, uy = -Infinity;
+
+            for (let triangle of mx) for (let [vtx] of triangle) {
+                if (lx > vtx[0]) lx = vtx[0];
+                if (ux < vtx[0]) ux = vtx[0];
+                if (ly > vtx[1]) ly = vtx[1];
+                if (uy < vtx[1]) uy = vtx[1];
+            }
+
+            const rx = ux-lx;
+            const ry = uy-ly;
+
+            for (let triangle of mx) for (let [vtx, txc] of triangle) {
+                txc[0] = (vtx[0] - lx) / rx;
+                txc[1] = 1 - (vtx[1] - ly) / ry;
+            }
+*/
 
             shape = Shape.Triangles(
-                parseWavObj(raw),
-                {texture: dx.Texture([[255, 0, 0, 255]], 1, 1)}
+                mx,
+                {
+                    texture: dx.Texture([[255, 0, 0, 255]], 1, 1),
+                    shade: [0.04, 0.0]
+                },
             );
 
             ac.updateProjection();
             ac.startAnimation();
 
-            /*const texture = new Image();
-            texture.src = "tex/sandstone.jpg";
-            texture.onload = () => shape.texture = dx.Texture(texture);*/
+            const texture = new Image();
+            texture.src = "tex/earth.jpg";
+            texture.onload = () => shape.texture = dx.Texture(texture);
         })
         ().catch(e=>console.log(e));
 
